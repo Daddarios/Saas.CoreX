@@ -5,6 +5,7 @@ const navItems = [
   { to: '/kunden', label: 'Kunden', icon: 'bi-people' },
   { to: '/projekte', label: 'Projekte', icon: 'bi-kanban' },
   { to: '/tickets', label: 'Tickets', icon: 'bi-ticket-detailed' },
+  { to: '/benutzer', label: 'Benutzer', icon: 'bi-person-gear' },
   { to: '/chat', label: 'Chat', icon: 'bi-chat-dots' },
 ];
 

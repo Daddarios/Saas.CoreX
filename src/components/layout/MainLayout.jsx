@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import './layout.css';
 
 export default function MainLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);

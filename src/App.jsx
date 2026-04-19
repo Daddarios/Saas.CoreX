@@ -8,6 +8,7 @@ import Kunden from './pages/Kunden';
 import Projekte from './pages/Projekte';
 import Tickets from './pages/Tickets';
 import Chat from './pages/Chat';
+import Benutzer from './pages/Benutzer';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         <Route path="projekte" element={<Projekte />} />
         <Route path="tickets" element={<Tickets />} />
         <Route path="chat" element={<Chat />} />
+        <Route path="benutzer" element={<Benutzer />} />
       </Route>
     </Routes>
   );

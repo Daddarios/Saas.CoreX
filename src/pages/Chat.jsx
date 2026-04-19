@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Container, Row, Col, ListGroup, Form, Button, Spinner, Badge } from 'react-bootstrap';
+import { Alert, Badge, Button, Col, Container, Form, ListGroup, Row, Spinner } from 'react-bootstrap';
 import { chatApi } from '../api/chatApi';
 import { useSignalR } from '../hooks/useSignalR';
 import { useAuth } from '../hooks/useAuth';
@@ -12,10 +12,10 @@ export default function Chat() {
   const [newMsg, setNewMsg] = useState('');
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
 
-  // SignalR
-  const { invoke, connected } = useSignalR('/hubs/chat', {
+  const { invoke, connected, status, reconnect, reconnectAttempt } = useSignalR('/hubs/chat', {
     onReceive: {
       ReceiveMessage: (message) => {
         if (message.raumId === activeRaum?.id) {
@@ -29,8 +29,12 @@ export default function Chat() {
   // Load rooms
   useEffect(() => {
     chatApi.getRaeume()
-      .then((res) => setRaeume(res.data))
-      .catch(() => {})
+      .then((res) => {
+        const list = res.data || [];
+        setRaeume(list);
+        if (list.length > 0) setActiveRaum((prev) => prev || list[0]);
+      })
+      .catch((err) => setError(err.response?.data?.message || 'Raeume konnten nicht geladen werden.'))
       .finally(() => setLoadingRooms(false));
   }, []);
 
@@ -44,9 +48,7 @@ export default function Chat() {
       .finally(() => setLoadingMsgs(false));
 
     // Join SignalR room
-    if (connected) {
-      invoke('JoinRoom', activeRaum.id.toString());
-    }
+    if (connected) invoke('JoinRoom', activeRaum.id.toString());
   }, [activeRaum, connected]);
 
   // Auto scroll
@@ -67,12 +69,22 @@ export default function Chat() {
   return (
     <Container fluid className="py-4" style={{ height: 'calc(100vh - 72px)' }}>
       <Row className="h-100">
-        {/* Room list */}
         <Col md={3} className="border-end pe-0">
           <h5 className="px-3 mb-3">
             Chat-Räume
-            {connected && <Badge bg="success" className="ms-2 small">Online</Badge>}
+            {status === 'connected' && <Badge bg="success" className="ms-2 small">Online</Badge>}
+            {status === 'reconnecting' && (
+              <Badge bg="warning" className="ms-2 small text-dark">Reconnect {reconnectAttempt}</Badge>
+            )}
           </h5>
+          {status !== 'connected' && (
+            <div className="px-3 pb-2">
+              <Button size="sm" variant="outline-secondary" onClick={reconnect}>
+                <i className="bi bi-arrow-clockwise me-1" /> Verbinden
+              </Button>
+            </div>
+          )}
+          {error && <Alert variant="danger" className="mx-3 py-2">{error}</Alert>}
           {loadingRooms ? <Spinner className="ms-3" /> : (
             <ListGroup variant="flush">
               {raeume.map((r) => (
@@ -83,7 +95,7 @@ export default function Chat() {
                   onClick={() => setActiveRaum(r)}
                   className="d-flex justify-content-between"
                 >
-                  <span>💬 {r.name}</span>
+                  <span><i className="bi bi-chat-left-dots me-2" />{r.name}</span>
                 </ListGroup.Item>
               ))}
               {raeume.length === 0 && (
@@ -93,7 +105,6 @@ export default function Chat() {
           )}
         </Col>
 
-        {/* Messages */}
         <Col md={9} className="d-flex flex-column ps-0">
           {!activeRaum ? (
             <div className="d-flex align-items-center justify-content-center flex-grow-1 text-muted">

@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Container, Button, Modal, Form, Alert, Spinner } from 'react-bootstrap';
+import { Container, Button, Modal, Form, Alert } from 'react-bootstrap';
 import DataTable from '../components/shared/DataTable';
 import StatusBadge from '../components/shared/StatusBadge';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { projektApi } from '../api/projektApi';
 
 const statusOptions = ['NichtGestartet', 'InBearbeitung', 'Abgeschlossen', 'Pausiert'];
@@ -15,6 +17,7 @@ export default function Projekte() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
   const [error, setError] = useState('');
   const size = 20;
 
@@ -46,9 +49,13 @@ export default function Projekte() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Wirklich löschen?')) return;
-    try { await projektApi.delete(id); load(); } catch { /* ignore */ }
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await projektApi.delete(deleteId);
+      setDeleteId(null);
+      load();
+    } catch { /* ignore */ }
   };
 
   const columns = [
@@ -63,8 +70,8 @@ export default function Projekte() {
       render: (row) => (
         <>
           <Button size="sm" variant="outline-primary" className="me-1"
-            onClick={() => { setEditItem(row); setShowModal(true); }}>✏️</Button>
-          <Button size="sm" variant="outline-danger" onClick={() => handleDelete(row.id)}>🗑️</Button>
+            onClick={() => { setEditItem(row); setShowModal(true); }}><i className="bi bi-pencil" /></Button>
+          <Button size="sm" variant="outline-danger" onClick={() => setDeleteId(row.id)}><i className="bi bi-trash" /></Button>
         </>
       ),
     },
@@ -74,11 +81,13 @@ export default function Projekte() {
     <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Projekte</h2>
-        <Button onClick={() => { setEditItem(null); setShowModal(true); }}>+ Neues Projekt</Button>
+        <Button onClick={() => { setEditItem(null); setShowModal(true); }}>
+          <i className="bi bi-plus-lg me-1" /> Neues Projekt
+        </Button>
       </div>
 
       {loading ? (
-        <div className="text-center py-5"><Spinner /></div>
+        <LoadingSpinner text="Projekte werden geladen..." />
       ) : (
         <DataTable columns={columns} data={data} totalCount={total}
           page={page} size={size} onPageChange={setPage} onSearch={setSearch}
@@ -88,6 +97,14 @@ export default function Projekte() {
       <ProjektModal show={showModal}
         onHide={() => { setShowModal(false); setEditItem(null); setError(''); }}
         onSave={handleSave} initial={editItem} error={error} />
+
+      <ConfirmDialog
+        show={!!deleteId}
+        title="Projekt loeschen"
+        message="Projekt kalici olarak silinecek. Fortfahren?"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+      />
     </Container>
   );
 }

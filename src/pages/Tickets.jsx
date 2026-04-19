@@ -1,8 +1,21 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Container, Button, Modal, Form, Alert, Spinner, ListGroup } from 'react-bootstrap';
+import {
+  Alert,
+  Button,
+  Container,
+  Form,
+  ListGroup,
+  Modal,
+  Spinner,
+  Toast,
+  ToastContainer,
+} from 'react-bootstrap';
 import DataTable from '../components/shared/DataTable';
 import StatusBadge from '../components/shared/StatusBadge';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { ticketApi } from '../api/ticketApi';
+import { useSignalR } from '../hooks/useSignalR';
 
 const statusOptions = ['Offen', 'InBearbeitung', 'Geloest', 'Geschlossen'];
 const prioritaetOptions = ['Niedrig', 'Mittel', 'Hoch', 'Kritisch'];
@@ -16,8 +29,24 @@ export default function Tickets() {
   const [showModal, setShowModal] = useState(false);
   const [showDetail, setShowDetail] = useState(null);
   const [editItem, setEditItem] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+  const [toast, setToast] = useState({ show: false, text: '' });
   const [error, setError] = useState('');
   const size = 20;
+
+  const showToast = (text) => setToast({ show: true, text });
+
+  useSignalR('/hubs/benachrichtigung', {
+    onReceive: {
+      TicketUpdated: () => {
+        load();
+        showToast('Ticket aktualisiert');
+      },
+      NewNotification: (msg) => {
+        showToast(msg?.titel || msg?.inhalt || 'Neue Benachrichtigung');
+      },
+    },
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,9 +76,23 @@ export default function Tickets() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Wirklich löschen?')) return;
-    try { await ticketApi.delete(id); load(); } catch { /* ignore */ }
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await ticketApi.delete(deleteId);
+      setDeleteId(null);
+      load();
+    } catch { /* ignore */ }
+  };
+
+  const changeStatus = async (id, status) => {
+    try {
+      await ticketApi.updateStatus(id, status);
+      load();
+      showToast(`Status: ${status}`);
+    } catch {
+      showToast('Statuswechsel fehlgeschlagen');
+    }
   };
 
   const columns = [
@@ -63,10 +106,18 @@ export default function Tickets() {
       render: (row) => (
         <>
           <Button size="sm" variant="outline-info" className="me-1"
-            onClick={() => setShowDetail(row)}>👁️</Button>
+            onClick={() => setShowDetail(row)}><i className="bi bi-eye" /></Button>
           <Button size="sm" variant="outline-primary" className="me-1"
-            onClick={() => { setEditItem(row); setShowModal(true); }}>✏️</Button>
-          <Button size="sm" variant="outline-danger" onClick={() => handleDelete(row.id)}>🗑️</Button>
+            onClick={() => { setEditItem(row); setShowModal(true); }}><i className="bi bi-pencil" /></Button>
+          <Button size="sm" variant="outline-danger" className="me-1" onClick={() => setDeleteId(row.id)}><i className="bi bi-trash" /></Button>
+          <select
+            className="form-select form-select-sm d-inline-block"
+            style={{ width: 'auto' }}
+            value={row.status}
+            onChange={(e) => changeStatus(row.id, e.target.value)}
+          >
+            {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
         </>
       ),
     },
@@ -76,11 +127,13 @@ export default function Tickets() {
     <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Tickets</h2>
-        <Button onClick={() => { setEditItem(null); setShowModal(true); }}>+ Neues Ticket</Button>
+        <Button onClick={() => { setEditItem(null); setShowModal(true); }}>
+          <i className="bi bi-plus-lg me-1" /> Neues Ticket
+        </Button>
       </div>
 
       {loading ? (
-        <div className="text-center py-5"><Spinner /></div>
+        <LoadingSpinner text="Tickets werden geladen..." />
       ) : (
         <DataTable columns={columns} data={data} totalCount={total}
           page={page} size={size} onPageChange={setPage} onSearch={setSearch}
@@ -94,6 +147,23 @@ export default function Tickets() {
       {showDetail && (
         <TicketDetail ticket={showDetail} onHide={() => setShowDetail(null)} />
       )}
+
+      <ConfirmDialog
+        show={!!deleteId}
+        title="Ticket loeschen"
+        message="Dieses Ticket wird dauerhaft entfernt. Fortfahren?"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+      />
+
+      <ToastContainer position="bottom-end" className="p-3">
+        <Toast delay={2500} autohide show={toast.show} onClose={() => setToast({ show: false, text: '' })}>
+          <Toast.Header>
+            <strong className="me-auto">Benachrichtigung</strong>
+          </Toast.Header>
+          <Toast.Body>{toast.text}</Toast.Body>
+        </Toast>
+      </ToastContainer>
     </Container>
   );
 }

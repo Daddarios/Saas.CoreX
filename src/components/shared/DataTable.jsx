@@ -12,7 +12,7 @@ export default function DataTable({
   searchPlaceholder = 'Suchen...',
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const totalPages = Math.ceil(totalCount / size);
+  const totalPages = Math.ceil(Math.max(totalCount, data.length) / size);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -36,7 +36,7 @@ export default function DataTable({
         </Form>
       )}
 
-      <Table striped bordered hover responsive>
+      <Table striped hover responsive className="align-middle shadow-sm rounded overflow-hidden">
         <thead className="table-dark">
           <tr>
             {columns.map((col) => (

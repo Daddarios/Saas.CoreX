@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Container, Button, Modal, Form, Alert, Spinner } from 'react-bootstrap';
+import { Container, Button, Modal, Form, Alert } from 'react-bootstrap';
 import DataTable from '../components/shared/DataTable';
+import LoadingSpinner from '../components/shared/LoadingSpinner';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { kundeApi } from '../api/kundeApi';
 
 export default function Kunden() {
@@ -11,6 +13,7 @@ export default function Kunden() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
   const [error, setError] = useState('');
 
   const size = 20;
@@ -43,10 +46,11 @@ export default function Kunden() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Wirklich löschen?')) return;
+  const handleDelete = async () => {
+    if (!deleteId) return;
     try {
-      await kundeApi.delete(id);
+      await kundeApi.delete(deleteId);
+      setDeleteId(null);
       load();
     } catch { /* ignore */ }
   };
@@ -64,10 +68,10 @@ export default function Kunden() {
         <>
           <Button size="sm" variant="outline-primary" className="me-1"
             onClick={() => { setEditItem(row); setShowModal(true); }}>
-            ✏️
+            <i className="bi bi-pencil" />
           </Button>
-          <Button size="sm" variant="outline-danger" onClick={() => handleDelete(row.id)}>
-            🗑️
+          <Button size="sm" variant="outline-danger" onClick={() => setDeleteId(row.id)}>
+            <i className="bi bi-trash" />
           </Button>
         </>
       ),
@@ -78,11 +82,13 @@ export default function Kunden() {
     <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Kunden</h2>
-        <Button onClick={() => { setEditItem(null); setShowModal(true); }}>+ Neuer Kunde</Button>
+        <Button onClick={() => { setEditItem(null); setShowModal(true); }}>
+          <i className="bi bi-plus-lg me-1" /> Neuer Kunde
+        </Button>
       </div>
 
       {loading ? (
-        <div className="text-center py-5"><Spinner /></div>
+        <LoadingSpinner text="Kunden werden geladen..." />
       ) : (
         <DataTable
           columns={columns}
@@ -102,6 +108,14 @@ export default function Kunden() {
         onSave={handleSave}
         initial={editItem}
         error={error}
+      />
+
+      <ConfirmDialog
+        show={!!deleteId}
+        title="Kunde loeschen"
+        message="Dieser Datensatz wird dauerhaft entfernt. Fortfahren?"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={handleDelete}
       />
     </Container>
   );
