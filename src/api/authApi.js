@@ -9,5 +9,7 @@ export const authApi = {
 
   refresh: () => axiosClient.post('/auth/refresh'),
 
+  me: () => axiosClient.get('/auth/me'),
+
   logout: () => axiosClient.post('/auth/logout'),
 };

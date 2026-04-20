@@ -1,15 +1,38 @@
 import axios from 'axios';
 
+// -----------------------------------------------------------------
+// Access token — module-level, sessionStorage fallback'li
+// -----------------------------------------------------------------
+let _accessToken = sessionStorage.getItem('accessToken') || null;
+
+export const setAccessToken = (token) => {
+  _accessToken = token ?? null;
+  if (_accessToken) {
+    sessionStorage.setItem('accessToken', _accessToken);
+  } else {
+    sessionStorage.removeItem('accessToken');
+  }
+};
+
+export const getAccessToken = () => _accessToken;
+
+// -----------------------------------------------------------------
+// Axios instance
+// -----------------------------------------------------------------
 const axiosClient = axios.create({
   baseURL: 'http://localhost:8080/api',
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  withCredentials: true, // HTTP-only refresh-token cookie
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor — Mandant header ekle
+// -----------------------------------------------------------------
+// Request interceptor — Authorization + X-Mandant-Id
+// -----------------------------------------------------------------
 axiosClient.interceptors.request.use((config) => {
+  const token = getAccessToken();
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
   const mandantId = localStorage.getItem('mandantId');
   if (mandantId) {
     config.headers['X-Mandant-Id'] = mandantId;
@@ -17,34 +40,62 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor — 401 → refresh dene, başarısızsa login'e yönlendir
+// -----------------------------------------------------------------
+// Response interceptor — 401 → queue-based refresh, infinite-loop koruması
+// -----------------------------------------------------------------
 let isRefreshing = false;
+let failedQueue = []; // { resolve, reject }[] — refresh bekliyenler
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((p) => (error ? p.reject(error) : p.resolve(token)));
+  failedQueue = [];
+};
+
+const AUTH_URLS = ['/auth/login', '/auth/verify', '/auth/refresh'];
+const isAuthEndpoint = (url) => AUTH_URLS.some((u) => url?.includes(u));
 
 axiosClient.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   async (error) => {
     const original = error.config;
 
-    // Auth endpoint'lerinde refresh deneme — sonsuz döngü olur
-    const isAuthUrl = original.url?.includes('/auth/login')
-      || original.url?.includes('/auth/verify')
-      || original.url?.includes('/auth/refresh');
-
-    if (error.response?.status === 401 && !original._retry && !isAuthUrl && !isRefreshing) {
-      original._retry = true;
-      isRefreshing = true;
-      try {
-        await axiosClient.post('/auth/refresh');
-        isRefreshing = false;
-        return axiosClient(original);
-      } catch {
-        isRefreshing = false;
-        localStorage.clear();
-        window.location.href = '/login';
-      }
+    if (error.response?.status !== 401 || original._retry || isAuthEndpoint(original.url)) {
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
+
+    // Başka bir refresh zaten dönüyor → kuyruğa ekle
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      }).then((token) => {
+        if (token) original.headers['Authorization'] = `Bearer ${token}`;
+        return axiosClient(original);
+      });
+    }
+
+    original._retry = true;
+    isRefreshing = true;
+
+    try {
+      const refreshRes = await axiosClient.post('/auth/refresh');
+      const newToken = refreshRes.data?.accessToken ?? refreshRes.data?.token ?? null;
+      if (newToken) setAccessToken(newToken);
+
+      processQueue(null, newToken);
+      isRefreshing = false;
+
+      if (newToken) original.headers['Authorization'] = `Bearer ${newToken}`;
+      return axiosClient(original);
+    } catch (refreshErr) {
+      processQueue(refreshErr, null);
+      isRefreshing = false;
+      setAccessToken(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('mandantId');
+      window.location.href = '/login';
+      return Promise.reject(refreshErr);
+    }
+  },
 );
 
 export default axiosClient;

@@ -50,7 +50,7 @@ export default function Header({
         </button>
         <button
           type="button"
-          className="btn btn-outline-secondary d-none d-lg-inline-flex align-items-center justify-content-center"
+          className="header-action-btn sidebar-desktop-toggle d-none d-lg-inline-flex"
           onClick={onToggleDesktopSidebar}
           aria-label={isSidebarCollapsed ? t('header.expandMenu') : t('header.collapseMenu')}
         >
@@ -64,42 +64,31 @@ export default function Header({
 
       <div className="d-flex align-items-center gap-2">
         <Dropdown align="end">
-          <Dropdown.Toggle variant="light" className="language-toggle-btn d-flex align-items-center gap-2 border">
-            <span className="language-flag">{activeLanguage.flag}</span>
-            <span className="d-none d-sm-inline">{activeLanguage.label}</span>
+          <Dropdown.Toggle variant="light" className="header-action-btn language-toggle-btn">
+            <span className={`fi fi-${activeLanguage.countryCode}`} style={{ fontSize: '1.1rem' }} />
           </Dropdown.Toggle>
-          <Dropdown.Menu>
+          <Dropdown.Menu className="language-dropdown-menu">
             {languageOptions.map((option) => (
               <Dropdown.Item key={option.code} active={language === option.code} onClick={() => setLanguage(option.code)}>
-                <span className="me-2">{option.flag}</span>
+                <span className={`fi fi-${option.countryCode} me-2`} style={{ fontSize: '1.1rem' }} />
                 {option.label}
               </Dropdown.Item>
             ))}
           </Dropdown.Menu>
         </Dropdown>
 
-        <Dropdown align="end">
-          <button
-            type="button"
-            className={`theme-switch${isDarkMode ? ' is-dark' : ''}`}
-            onClick={toggleTheme}
-            role="switch"
-            aria-checked={isDarkMode}
-            aria-label={`${t('header.themeMode', 'Theme mode')}: ${t(`header.${themeMode}`, themeMode)}`}
-          >
-            <span className="theme-switch-track">
-              <i className="bi bi-sun theme-switch-side theme-switch-side-light" />
-              <i className="bi bi-moon-stars theme-switch-side theme-switch-side-dark" />
-            </span>
-            <span className="theme-switch-thumb">
-              <i className={`bi ${isDarkMode ? 'bi-moon-stars-fill' : 'bi-sun-fill'}`} />
-            </span>
-          </button>
-        </Dropdown>
+        <button
+          type="button"
+          className="header-action-btn"
+          onClick={toggleTheme}
+          aria-label={`${t('header.themeMode', 'Theme mode')}: ${t(`header.${themeMode}`, themeMode)}`}
+        >
+          <i className={`bi ${isDarkMode ? 'bi-moon-stars-fill' : 'bi-sun-fill'}`} />
+        </button>
 
         <button
           type="button"
-          className="btn settings-trigger-btn d-inline-flex align-items-center justify-content-center"
+          className="header-action-btn"
           aria-label={t('header.themeSettings', 'Theme settings')}
           onClick={() => setSettingsOpen(true)}
         >
@@ -107,7 +96,7 @@ export default function Header({
         </button>
 
         <Dropdown align="end">
-          <Dropdown.Toggle variant="light" className="border d-flex align-items-center gap-2 profile-toggle-btn">
+          <Dropdown.Toggle variant="light" className="header-action-btn profile-toggle-btn">
             <i className="bi bi-person-circle" />
             <span className="d-none d-sm-inline">{t('common.profile')}</span>
           </Dropdown.Toggle>

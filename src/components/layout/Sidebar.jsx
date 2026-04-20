@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useLanguage } from '../../hooks/useLanguage';
 
 const navItems = [
-  { to: '/', labelKey: 'sidebar.dashboard', icon: 'bi-speedometer2', end: true },
+  { to: '/', labelKey: 'sidebar.dashboard', icon: 'bi bi-house-door-fill', end: true },
   { to: '/kunden', labelKey: 'sidebar.kunden', icon: 'bi-people' },
   { to: '/projekte', labelKey: 'sidebar.projekte', icon: 'bi-kanban' },
   { to: '/tickets', labelKey: 'sidebar.tickets', icon: 'bi-ticket-detailed' },
@@ -15,9 +15,12 @@ export default function Sidebar({ collapsed = false, onNavigate }) {
 
   return (
     <aside className={`app-sidebar d-flex flex-column h-100${collapsed ? ' collapsed' : ''}`}>
-      <div className="app-sidebar-brand px-2 py-2 border-bottom border-light-subtle">
-        <div className="app-sidebar-eyebrow small text-uppercase text-secondary fw-semibold">{t('sidebar.eyebrow')}</div>
-        <h5 className="app-sidebar-title mb-0 text-dark fw-bold">{t('sidebar.title')}</h5>
+      <div className="app-sidebar-brand px-2 py-3 border-bottom border-light-subtle d-flex justify-content-center">
+        <img
+          src="/SidebarSymbol1.png"
+          alt="Vista.CoreX"
+          className="app-sidebar-logo"
+        />
       </div>
 
       <nav className="p-2 flex-grow-1">
