@@ -1,4 +1,5 @@
 import { Button, Modal } from 'react-bootstrap';
+import { useLanguage } from '../../hooks/useLanguage';
 
 export default function ConfirmDialog({
   show,
@@ -10,15 +11,17 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }) {
+  const { t } = useLanguage();
+
   return (
     <Modal show={show} onHide={onCancel} centered>
       <Modal.Header closeButton>
-        <Modal.Title>{title}</Modal.Title>
+        <Modal.Title>{title || t('common.confirm')}</Modal.Title>
       </Modal.Header>
-      <Modal.Body>{message}</Modal.Body>
+      <Modal.Body>{message || t('common.areYouSure')}</Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onCancel}>{cancelText}</Button>
-        <Button variant={variant} onClick={onConfirm}>{confirmText}</Button>
+        <Button variant="secondary" onClick={onCancel}>{cancelText || t('common.cancel')}</Button>
+        <Button variant={variant} onClick={onConfirm}>{confirmText || t('common.delete')}</Button>
       </Modal.Footer>
     </Modal>
   );

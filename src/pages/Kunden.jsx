@@ -4,8 +4,10 @@ import DataTable from '../components/shared/DataTable';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { kundeApi } from '../api/kundeApi';
+import { useLanguage } from '../hooks/useLanguage';
 
 export default function Kunden() {
+  const { t } = useLanguage();
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -42,7 +44,7 @@ export default function Kunden() {
       setEditItem(null);
       load();
     } catch (err) {
-      setError(err.response?.data?.message || 'Fehler beim Speichern.');
+      setError(err.response?.data?.message || t('kunden.saveError'));
     }
   };
 
@@ -56,14 +58,14 @@ export default function Kunden() {
   };
 
   const columns = [
-    { key: 'unternehmen', label: 'Unternehmen' },
-    { key: 'vorname', label: 'Vorname' },
-    { key: 'nachname', label: 'Nachname' },
-    { key: 'email', label: 'E-Mail' },
-    { key: 'telefonMobil', label: 'Telefon' },
+    { key: 'unternehmen', label: t('kunden.company') },
+    { key: 'vorname', label: t('kunden.firstName') },
+    { key: 'nachname', label: t('kunden.lastName') },
+    { key: 'email', label: t('auth.email') },
+    { key: 'telefonMobil', label: t('kunden.phone') },
     {
       key: 'actions',
-      label: 'Aktionen',
+      label: t('common.actions'),
       render: (row) => (
         <>
           <Button size="sm" variant="outline-primary" className="me-1"
@@ -81,14 +83,14 @@ export default function Kunden() {
   return (
     <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>Kunden</h2>
+        <h2>{t('kunden.title')}</h2>
         <Button onClick={() => { setEditItem(null); setShowModal(true); }}>
-          <i className="bi bi-plus-lg me-1" /> Neuer Kunde
+          <i className="bi bi-plus-lg me-1" /> {t('kunden.new')}
         </Button>
       </div>
 
       {loading ? (
-        <LoadingSpinner text="Kunden werden geladen..." />
+        <LoadingSpinner text={t('kunden.loading')} />
       ) : (
         <DataTable
           columns={columns}
@@ -98,7 +100,7 @@ export default function Kunden() {
           size={size}
           onPageChange={setPage}
           onSearch={setSearch}
-          searchPlaceholder="Kunde suchen..."
+          searchPlaceholder={t('kunden.search')}
         />
       )}
 
@@ -112,8 +114,8 @@ export default function Kunden() {
 
       <ConfirmDialog
         show={!!deleteId}
-        title="Kunde loeschen"
-        message="Dieser Datensatz wird dauerhaft entfernt. Fortfahren?"
+        title={t('kunden.deleteTitle')}
+        message={t('kunden.deleteMessage')}
         onCancel={() => setDeleteId(null)}
         onConfirm={handleDelete}
       />
@@ -122,6 +124,7 @@ export default function Kunden() {
 }
 
 function KundeModal({ show, onHide, onSave, initial, error }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     unternehmen: '', vorname: '', nachname: '', email: '',
     telefonMobil: '', telefonHaus: '', adresse: '', website: '', hinweise: '',
@@ -155,61 +158,61 @@ function KundeModal({ show, onHide, onSave, initial, error }) {
     <Modal show={show} onHide={onHide} size="lg">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
-          <Modal.Title>{initial ? 'Kunde bearbeiten' : 'Neuer Kunde'}</Modal.Title>
+          <Modal.Title>{initial ? t('kunden.editTitle') : t('kunden.newTitle')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
           <div className="row g-3">
             <div className="col-md-6">
-              <Form.Label>Unternehmen *</Form.Label>
+              <Form.Label>{t('kunden.company')} *</Form.Label>
               <Form.Control required value={form.unternehmen}
                 onChange={(e) => setForm({ ...form, unternehmen: e.target.value })} />
             </div>
             <div className="col-md-6">
-              <Form.Label>E-Mail *</Form.Label>
+              <Form.Label>{t('auth.email')} *</Form.Label>
               <Form.Control type="email" required value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
             <div className="col-md-6">
-              <Form.Label>Vorname</Form.Label>
+              <Form.Label>{t('kunden.firstName')}</Form.Label>
               <Form.Control value={form.vorname}
                 onChange={(e) => setForm({ ...form, vorname: e.target.value })} />
             </div>
             <div className="col-md-6">
-              <Form.Label>Nachname</Form.Label>
+              <Form.Label>{t('kunden.lastName')}</Form.Label>
               <Form.Control value={form.nachname}
                 onChange={(e) => setForm({ ...form, nachname: e.target.value })} />
             </div>
             <div className="col-md-6">
-              <Form.Label>Telefon (Mobil)</Form.Label>
+              <Form.Label>{t('kunden.mobilePhone')}</Form.Label>
               <Form.Control value={form.telefonMobil}
                 onChange={(e) => setForm({ ...form, telefonMobil: e.target.value })} />
             </div>
             <div className="col-md-6">
-              <Form.Label>Telefon (Haus)</Form.Label>
+              <Form.Label>{t('kunden.homePhone')}</Form.Label>
               <Form.Control value={form.telefonHaus}
                 onChange={(e) => setForm({ ...form, telefonHaus: e.target.value })} />
             </div>
             <div className="col-12">
-              <Form.Label>Adresse</Form.Label>
+              <Form.Label>{t('kunden.address')}</Form.Label>
               <Form.Control value={form.adresse}
                 onChange={(e) => setForm({ ...form, adresse: e.target.value })} />
             </div>
             <div className="col-md-6">
-              <Form.Label>Website</Form.Label>
+              <Form.Label>{t('kunden.website')}</Form.Label>
               <Form.Control value={form.website}
                 onChange={(e) => setForm({ ...form, website: e.target.value })} />
             </div>
             <div className="col-12">
-              <Form.Label>Hinweise</Form.Label>
+              <Form.Label>{t('kunden.notes')}</Form.Label>
               <Form.Control as="textarea" rows={2} value={form.hinweise}
                 onChange={(e) => setForm({ ...form, hinweise: e.target.value })} />
             </div>
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={onHide}>Abbrechen</Button>
-          <Button type="submit" variant="primary">Speichern</Button>
+          <Button variant="secondary" onClick={onHide}>{t('common.cancel')}</Button>
+          <Button type="submit" variant="primary">{t('common.save')}</Button>
         </Modal.Footer>
       </Form>
     </Modal>

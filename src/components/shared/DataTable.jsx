@@ -1,5 +1,6 @@
 import { Table, Pagination, Form, InputGroup } from 'react-bootstrap';
 import { useState } from 'react';
+import { useLanguage } from '../../hooks/useLanguage';
 
 export default function DataTable({
   columns,
@@ -11,6 +12,7 @@ export default function DataTable({
   onSearch,
   searchPlaceholder = 'Suchen...',
 }) {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const totalPages = Math.ceil(Math.max(totalCount, data.length) / size);
 
@@ -30,7 +32,7 @@ export default function DataTable({
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             <button className="btn btn-outline-primary" type="submit">
-              <i className="bi bi-search"></i> Suchen
+              <i className="bi bi-search"></i> {t('common.search')}
             </button>
           </InputGroup>
         </Form>
@@ -48,7 +50,7 @@ export default function DataTable({
           {data.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="text-center text-muted py-4">
-                Keine Daten vorhanden
+                {t('common.noData')}
               </td>
             </tr>
           ) : (
@@ -67,7 +69,7 @@ export default function DataTable({
 
       {totalPages > 1 && (
         <Pagination className="justify-content-center">
-          <Pagination.Prev disabled={page <= 1} onClick={() => onPageChange?.(page - 1)} />
+          <Pagination.Prev disabled={page <= 1} onClick={() => onPageChange?.(page - 1)}>{t('common.previous')}</Pagination.Prev>
           {[...Array(Math.min(totalPages, 10))].map((_, i) => (
             <Pagination.Item
               key={i + 1}
@@ -77,7 +79,7 @@ export default function DataTable({
               {i + 1}
             </Pagination.Item>
           ))}
-          <Pagination.Next disabled={page >= totalPages} onClick={() => onPageChange?.(page + 1)} />
+          <Pagination.Next disabled={page >= totalPages} onClick={() => onPageChange?.(page + 1)}>{t('common.next')}</Pagination.Next>
         </Pagination>
       )}
     </>

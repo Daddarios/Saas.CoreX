@@ -4,10 +4,12 @@ import DataTable from '../components/shared/DataTable';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { benutzerApi } from '../api/benutzerApi';
+import { useLanguage } from '../hooks/useLanguage';
 
 const rollen = ['Admin', 'Manager', 'Mitarbeiter'];
 
 export default function Benutzer() {
+  const { t } = useLanguage();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -21,7 +23,7 @@ export default function Benutzer() {
       const res = await benutzerApi.getAll();
       setUsers(res.data.items || res.data || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Benutzer konnten nicht geladen werden.');
+      setError(err.response?.data?.message || t('benutzer.loadError'));
     } finally {
       setLoading(false);
     }
@@ -43,7 +45,7 @@ export default function Benutzer() {
       setEditItem(null);
       await load();
     } catch (err) {
-      setError(err.response?.data?.message || 'Benutzer konnte nicht gespeichert werden.');
+      setError(err.response?.data?.message || t('benutzer.saveError'));
     }
   };
 
@@ -54,18 +56,18 @@ export default function Benutzer() {
       setDeleteId(null);
       await load();
     } catch (err) {
-      setError(err.response?.data?.message || 'Benutzer konnte nicht geloescht werden.');
+      setError(err.response?.data?.message || t('benutzer.deleteError'));
     }
   };
 
   const columns = [
-    { key: 'vorname', label: 'Vorname' },
-    { key: 'nachname', label: 'Nachname' },
-    { key: 'email', label: 'E-Mail' },
-    { key: 'rolle', label: 'Rolle' },
+    { key: 'vorname', label: t('kunden.firstName') },
+    { key: 'nachname', label: t('kunden.lastName') },
+    { key: 'email', label: t('auth.email') },
+    { key: 'rolle', label: t('benutzer.role') },
     {
       key: 'actions',
-      label: 'Aktionen',
+      label: t('common.actions'),
       render: (row) => (
         <div className="d-flex gap-1">
           <Button
@@ -89,21 +91,21 @@ export default function Benutzer() {
   return (
     <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2 className="mb-0">Benutzer</h2>
+        <h2 className="mb-0">{t('benutzer.title')}</h2>
         <Button
           onClick={() => {
             setEditItem(null);
             setShowModal(true);
           }}
         >
-          <i className="bi bi-plus-lg me-1" /> Neu
+          <i className="bi bi-plus-lg me-1" /> {t('benutzer.new')}
         </Button>
       </div>
 
       {error && <Alert variant="danger">{error}</Alert>}
 
       {loading ? (
-        <LoadingSpinner text="Benutzer werden geladen..." />
+        <LoadingSpinner text={t('benutzer.loading')} />
       ) : (
         <DataTable columns={columns} data={users} totalCount={users.length} size={20} page={1} />
       )}
@@ -120,8 +122,8 @@ export default function Benutzer() {
 
       <ConfirmDialog
         show={!!deleteId}
-        title="Benutzer loeschen"
-        message="Dieser Benutzer wird dauerhaft entfernt. Fortfahren?"
+        title={t('benutzer.deleteTitle')}
+        message={t('benutzer.deleteMessage')}
         onCancel={() => setDeleteId(null)}
         onConfirm={handleDelete}
       />
@@ -130,6 +132,7 @@ export default function Benutzer() {
 }
 
 function BenutzerModal({ show, initial, onHide, onSave }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState({ vorname: '', nachname: '', email: '', rolle: 'Mitarbeiter' });
 
   useEffect(() => {
@@ -154,12 +157,12 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
     <Modal show={show} onHide={onHide} centered>
       <Form onSubmit={submit}>
         <Modal.Header closeButton>
-          <Modal.Title>{initial ? 'Benutzer bearbeiten' : 'Neuer Benutzer'}</Modal.Title>
+          <Modal.Title>{initial ? t('benutzer.editTitle') : t('benutzer.newTitle')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <div className="row g-3">
             <div className="col-6">
-              <Form.Label>Vorname *</Form.Label>
+              <Form.Label>{t('kunden.firstName')} *</Form.Label>
               <Form.Control
                 required
                 value={form.vorname}
@@ -167,7 +170,7 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
               />
             </div>
             <div className="col-6">
-              <Form.Label>Nachname *</Form.Label>
+              <Form.Label>{t('kunden.lastName')} *</Form.Label>
               <Form.Control
                 required
                 value={form.nachname}
@@ -175,7 +178,7 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
               />
             </div>
             <div className="col-12">
-              <Form.Label>E-Mail *</Form.Label>
+              <Form.Label>{t('auth.email')} *</Form.Label>
               <Form.Control
                 required
                 type="email"
@@ -184,7 +187,7 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
               />
             </div>
             <div className="col-12">
-              <Form.Label>Rolle</Form.Label>
+              <Form.Label>{t('benutzer.role')}</Form.Label>
               <Form.Select
                 value={form.rolle}
                 onChange={(e) => setForm({ ...form, rolle: e.target.value })}
@@ -197,8 +200,8 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={onHide}>Abbrechen</Button>
-          <Button type="submit" variant="primary">Speichern</Button>
+          <Button variant="secondary" onClick={onHide}>{t('common.cancel')}</Button>
+          <Button type="submit" variant="primary">{t('common.save')}</Button>
         </Modal.Footer>
       </Form>
     </Modal>

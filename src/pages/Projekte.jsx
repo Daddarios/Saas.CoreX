@@ -5,11 +5,13 @@ import StatusBadge from '../components/shared/StatusBadge';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { projektApi } from '../api/projektApi';
+import { useLanguage } from '../hooks/useLanguage';
 
 const statusOptions = ['NichtGestartet', 'InBearbeitung', 'Abgeschlossen', 'Pausiert'];
 const prioritaetOptions = ['Niedrig', 'Mittel', 'Hoch', 'Kritisch'];
 
 export default function Projekte() {
+  const { t } = useLanguage();
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -45,7 +47,7 @@ export default function Projekte() {
       setEditItem(null);
       load();
     } catch (err) {
-      setError(err.response?.data?.message || 'Fehler beim Speichern.');
+      setError(err.response?.data?.message || t('projekte.saveError'));
     }
   };
 
@@ -59,14 +61,14 @@ export default function Projekte() {
   };
 
   const columns = [
-    { key: 'name', label: 'Name' },
-    { key: 'status', label: 'Status', render: (r) => <StatusBadge value={r.status} /> },
-    { key: 'prioritaet', label: 'Priorität', render: (r) => <StatusBadge value={r.prioritaet} /> },
+    { key: 'name', label: t('projekte.name') },
+    { key: 'status', label: t('common.status'), render: (r) => <StatusBadge value={r.status} /> },
+    { key: 'prioritaet', label: t('common.priority'), render: (r) => <StatusBadge value={r.prioritaet} /> },
     { key: 'abschlussInProzent', label: '%', render: (r) => `${r.abschlussInProzent ?? 0}%` },
-    { key: 'startdatum', label: 'Start', render: (r) => r.startdatum?.slice(0, 10) || '—' },
-    { key: 'enddatum', label: 'Ende', render: (r) => r.enddatum?.slice(0, 10) || '—' },
+    { key: 'startdatum', label: t('projekte.start'), render: (r) => r.startdatum?.slice(0, 10) || '—' },
+    { key: 'enddatum', label: t('projekte.end'), render: (r) => r.enddatum?.slice(0, 10) || '—' },
     {
-      key: 'actions', label: 'Aktionen',
+      key: 'actions', label: t('common.actions'),
       render: (row) => (
         <>
           <Button size="sm" variant="outline-primary" className="me-1"
@@ -80,18 +82,18 @@ export default function Projekte() {
   return (
     <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>Projekte</h2>
+        <h2>{t('projekte.title')}</h2>
         <Button onClick={() => { setEditItem(null); setShowModal(true); }}>
-          <i className="bi bi-plus-lg me-1" /> Neues Projekt
+          <i className="bi bi-plus-lg me-1" /> {t('projekte.new')}
         </Button>
       </div>
 
       {loading ? (
-        <LoadingSpinner text="Projekte werden geladen..." />
+        <LoadingSpinner text={t('projekte.loading')} />
       ) : (
         <DataTable columns={columns} data={data} totalCount={total}
           page={page} size={size} onPageChange={setPage} onSearch={setSearch}
-          searchPlaceholder="Projekt suchen..." />
+          searchPlaceholder={t('projekte.search')} />
       )}
 
       <ProjektModal show={showModal}
@@ -100,8 +102,8 @@ export default function Projekte() {
 
       <ConfirmDialog
         show={!!deleteId}
-        title="Projekt loeschen"
-        message="Projekt kalici olarak silinecek. Fortfahren?"
+        title={t('projekte.deleteTitle')}
+        message={t('projekte.deleteMessage')}
         onCancel={() => setDeleteId(null)}
         onConfirm={handleDelete}
       />
@@ -110,6 +112,7 @@ export default function Projekte() {
 }
 
 function ProjektModal({ show, onHide, onSave, initial, error }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     name: '', beschreibung: '', startdatum: '', enddatum: '',
     status: 'NichtGestartet', prioritaet: 'Mittel', abschlussInProzent: 0,
@@ -138,55 +141,55 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
     <Modal show={show} onHide={onHide} size="lg">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
-          <Modal.Title>{initial ? 'Projekt bearbeiten' : 'Neues Projekt'}</Modal.Title>
+          <Modal.Title>{initial ? t('projekte.editTitle') : t('projekte.newTitle')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
           <div className="row g-3">
             <div className="col-12">
-              <Form.Label>Name *</Form.Label>
+              <Form.Label>{t('projekte.name')} *</Form.Label>
               <Form.Control required value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
             <div className="col-12">
-              <Form.Label>Beschreibung</Form.Label>
+              <Form.Label>{t('projekte.description')}</Form.Label>
               <Form.Control as="textarea" rows={2} value={form.beschreibung}
                 onChange={(e) => setForm({ ...form, beschreibung: e.target.value })} />
             </div>
             <div className="col-md-6">
-              <Form.Label>Status</Form.Label>
+              <Form.Label>{t('common.status')}</Form.Label>
               <Form.Select value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                {statusOptions.map((s) => <option key={s} value={s}>{t(`status.${s}`, s)}</option>)}
               </Form.Select>
             </div>
             <div className="col-md-6">
-              <Form.Label>Priorität</Form.Label>
+              <Form.Label>{t('common.priority')}</Form.Label>
               <Form.Select value={form.prioritaet}
                 onChange={(e) => setForm({ ...form, prioritaet: e.target.value })}>
-                {prioritaetOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+                {prioritaetOptions.map((p) => <option key={p} value={p}>{t(`status.${p}`, p)}</option>)}
               </Form.Select>
             </div>
             <div className="col-md-4">
-              <Form.Label>Startdatum</Form.Label>
+              <Form.Label>{t('projekte.start')}</Form.Label>
               <Form.Control type="date" value={form.startdatum}
                 onChange={(e) => setForm({ ...form, startdatum: e.target.value })} />
             </div>
             <div className="col-md-4">
-              <Form.Label>Enddatum</Form.Label>
+              <Form.Label>{t('projekte.end')}</Form.Label>
               <Form.Control type="date" value={form.enddatum}
                 onChange={(e) => setForm({ ...form, enddatum: e.target.value })} />
             </div>
             <div className="col-md-4">
-              <Form.Label>Abschluss %</Form.Label>
+              <Form.Label>{t('projekte.completion')}</Form.Label>
               <Form.Control type="number" min={0} max={100} value={form.abschlussInProzent}
                 onChange={(e) => setForm({ ...form, abschlussInProzent: +e.target.value })} />
             </div>
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={onHide}>Abbrechen</Button>
-          <Button type="submit" variant="primary">Speichern</Button>
+          <Button variant="secondary" onClick={onHide}>{t('common.cancel')}</Button>
+          <Button type="submit" variant="primary">{t('common.save')}</Button>
         </Modal.Footer>
       </Form>
     </Modal>

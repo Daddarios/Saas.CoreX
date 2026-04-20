@@ -1,4 +1,5 @@
 import { Badge } from 'react-bootstrap';
+import { useLanguage } from '../../hooks/useLanguage';
 
 const statusColors = {
   // Ticket
@@ -32,8 +33,9 @@ const statusLabels = {
 };
 
 export default function StatusBadge({ value }) {
+  const { t } = useLanguage();
   const color = statusColors[value] || 'secondary';
-  const label = statusLabels[value] || value;
+  const label = t(`status.${value}`, statusLabels[value] || value);
 
   return <Badge bg={color}>{label}</Badge>;
 }

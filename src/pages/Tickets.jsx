@@ -16,11 +16,13 @@ import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { ticketApi } from '../api/ticketApi';
 import { useSignalR } from '../hooks/useSignalR';
+import { useLanguage } from '../hooks/useLanguage';
 
 const statusOptions = ['Offen', 'InBearbeitung', 'Geloest', 'Geschlossen'];
 const prioritaetOptions = ['Niedrig', 'Mittel', 'Hoch', 'Kritisch'];
 
 export default function Tickets() {
+  const { t } = useLanguage();
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -40,10 +42,10 @@ export default function Tickets() {
     onReceive: {
       TicketUpdated: () => {
         load();
-        showToast('Ticket aktualisiert');
+        showToast(t('tickets.updated'));
       },
       NewNotification: (msg) => {
-        showToast(msg?.titel || msg?.inhalt || 'Neue Benachrichtigung');
+        showToast(msg?.titel || msg?.inhalt || t('tickets.newNotification'));
       },
     },
   });
@@ -72,7 +74,7 @@ export default function Tickets() {
       setEditItem(null);
       load();
     } catch (err) {
-      setError(err.response?.data?.message || 'Fehler beim Speichern.');
+      setError(err.response?.data?.message || t('tickets.saveError'));
     }
   };
 
@@ -91,18 +93,18 @@ export default function Tickets() {
       load();
       showToast(`Status: ${status}`);
     } catch {
-      showToast('Statuswechsel fehlgeschlagen');
+      showToast(t('tickets.statusFailed'));
     }
   };
 
   const columns = [
-    { key: 'titel', label: 'Titel' },
-    { key: 'status', label: 'Status', render: (r) => <StatusBadge value={r.status} /> },
-    { key: 'prioritaet', label: 'Priorität', render: (r) => <StatusBadge value={r.prioritaet} /> },
-    { key: 'kategorie', label: 'Kategorie' },
-    { key: 'faelligkeitsdatum', label: 'Fällig', render: (r) => r.faelligkeitsdatum?.slice(0, 10) || '—' },
+    { key: 'titel', label: t('common.title') },
+    { key: 'status', label: t('common.status'), render: (r) => <StatusBadge value={r.status} /> },
+    { key: 'prioritaet', label: t('common.priority'), render: (r) => <StatusBadge value={r.prioritaet} /> },
+    { key: 'kategorie', label: t('common.category') },
+    { key: 'faelligkeitsdatum', label: t('tickets.dueDate'), render: (r) => r.faelligkeitsdatum?.slice(0, 10) || '—' },
     {
-      key: 'actions', label: 'Aktionen',
+      key: 'actions', label: t('common.actions'),
       render: (row) => (
         <>
           <Button size="sm" variant="outline-info" className="me-1"
@@ -116,7 +118,7 @@ export default function Tickets() {
             value={row.status}
             onChange={(e) => changeStatus(row.id, e.target.value)}
           >
-            {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+            {statusOptions.map((s) => <option key={s} value={s}>{t(`status.${s}`, s)}</option>)}
           </select>
         </>
       ),
@@ -126,18 +128,18 @@ export default function Tickets() {
   return (
     <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>Tickets</h2>
+        <h2>{t('tickets.title')}</h2>
         <Button onClick={() => { setEditItem(null); setShowModal(true); }}>
-          <i className="bi bi-plus-lg me-1" /> Neues Ticket
+          <i className="bi bi-plus-lg me-1" /> {t('tickets.new')}
         </Button>
       </div>
 
       {loading ? (
-        <LoadingSpinner text="Tickets werden geladen..." />
+        <LoadingSpinner text={t('tickets.loading')} />
       ) : (
         <DataTable columns={columns} data={data} totalCount={total}
           page={page} size={size} onPageChange={setPage} onSearch={setSearch}
-          searchPlaceholder="Ticket suchen..." />
+          searchPlaceholder={t('tickets.search')} />
       )}
 
       <TicketModal show={showModal}
@@ -150,8 +152,8 @@ export default function Tickets() {
 
       <ConfirmDialog
         show={!!deleteId}
-        title="Ticket loeschen"
-        message="Dieses Ticket wird dauerhaft entfernt. Fortfahren?"
+        title={t('tickets.deleteTitle')}
+        message={t('tickets.deleteMessage')}
         onCancel={() => setDeleteId(null)}
         onConfirm={handleDelete}
       />
@@ -159,7 +161,7 @@ export default function Tickets() {
       <ToastContainer position="bottom-end" className="p-3">
         <Toast delay={2500} autohide show={toast.show} onClose={() => setToast({ show: false, text: '' })}>
           <Toast.Header>
-            <strong className="me-auto">Benachrichtigung</strong>
+            <strong className="me-auto">{t('tickets.newNotification')}</strong>
           </Toast.Header>
           <Toast.Body>{toast.text}</Toast.Body>
         </Toast>
@@ -169,6 +171,7 @@ export default function Tickets() {
 }
 
 function TicketModal({ show, onHide, onSave, initial, error }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     titel: '', beschreibung: '', status: 'Offen', prioritaet: 'Mittel',
     kategorie: '', faelligkeitsdatum: '',
@@ -196,50 +199,50 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
     <Modal show={show} onHide={onHide} size="lg">
       <Form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
-          <Modal.Title>{initial ? 'Ticket bearbeiten' : 'Neues Ticket'}</Modal.Title>
+          <Modal.Title>{initial ? t('tickets.editTitle') : t('tickets.newTitle')}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
           <div className="row g-3">
             <div className="col-12">
-              <Form.Label>Titel *</Form.Label>
+              <Form.Label>{t('common.title')} *</Form.Label>
               <Form.Control required value={form.titel}
                 onChange={(e) => setForm({ ...form, titel: e.target.value })} />
             </div>
             <div className="col-12">
-              <Form.Label>Beschreibung</Form.Label>
+              <Form.Label>{t('projekte.description')}</Form.Label>
               <Form.Control as="textarea" rows={3} value={form.beschreibung}
                 onChange={(e) => setForm({ ...form, beschreibung: e.target.value })} />
             </div>
             <div className="col-md-4">
-              <Form.Label>Status</Form.Label>
+              <Form.Label>{t('common.status')}</Form.Label>
               <Form.Select value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                {statusOptions.map((s) => <option key={s} value={s}>{t(`status.${s}`, s)}</option>)}
               </Form.Select>
             </div>
             <div className="col-md-4">
-              <Form.Label>Priorität</Form.Label>
+              <Form.Label>{t('common.priority')}</Form.Label>
               <Form.Select value={form.prioritaet}
                 onChange={(e) => setForm({ ...form, prioritaet: e.target.value })}>
-                {prioritaetOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+                {prioritaetOptions.map((p) => <option key={p} value={p}>{t(`status.${p}`, p)}</option>)}
               </Form.Select>
             </div>
             <div className="col-md-4">
-              <Form.Label>Kategorie</Form.Label>
+              <Form.Label>{t('common.category')}</Form.Label>
               <Form.Control value={form.kategorie}
                 onChange={(e) => setForm({ ...form, kategorie: e.target.value })} />
             </div>
             <div className="col-md-6">
-              <Form.Label>Fälligkeitsdatum</Form.Label>
+              <Form.Label>{t('tickets.dueDate')}</Form.Label>
               <Form.Control type="date" value={form.faelligkeitsdatum}
                 onChange={(e) => setForm({ ...form, faelligkeitsdatum: e.target.value })} />
             </div>
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={onHide}>Abbrechen</Button>
-          <Button type="submit" variant="primary">Speichern</Button>
+          <Button variant="secondary" onClick={onHide}>{t('common.cancel')}</Button>
+          <Button type="submit" variant="primary">{t('common.save')}</Button>
         </Modal.Footer>
       </Form>
     </Modal>
@@ -247,6 +250,7 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
 }
 
 function TicketDetail({ ticket, onHide }) {
+  const { t } = useLanguage();
   const [nachrichten, setNachrichten] = useState([]);
   const [newMsg, setNewMsg] = useState('');
   const [loading, setLoading] = useState(true);
@@ -278,11 +282,11 @@ function TicketDetail({ ticket, onHide }) {
       <Modal.Body>
         <p className="text-muted">{ticket.beschreibung}</p>
         <hr />
-        <h6>Nachrichten</h6>
+        <h6>{t('common.messages')}</h6>
         {loading ? <Spinner size="sm" /> : (
           <ListGroup className="mb-3" style={{ maxHeight: '300px', overflowY: 'auto' }}>
             {nachrichten.length === 0 && (
-              <ListGroup.Item className="text-muted">Keine Nachrichten</ListGroup.Item>
+              <ListGroup.Item className="text-muted">{t('tickets.noMessages')}</ListGroup.Item>
             )}
             {nachrichten.map((n, i) => (
               <ListGroup.Item key={i} className={n.istInternNotiz ? 'bg-warning-subtle' : ''}>
@@ -293,10 +297,10 @@ function TicketDetail({ ticket, onHide }) {
           </ListGroup>
         )}
         <div className="d-flex gap-2">
-          <Form.Control placeholder="Nachricht schreiben..." value={newMsg}
+          <Form.Control placeholder={t('tickets.writeMessage')} value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMsg()} />
-          <Button onClick={sendMsg}>Senden</Button>
+          <Button onClick={sendMsg}>{t('common.send')}</Button>
         </div>
       </Modal.Body>
     </Modal>

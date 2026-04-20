@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Button, Card, Col, Container, Row } from 'react-bootstrap';
 import { dashboardApi } from '../api/dashboardApi';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
+import { useLanguage } from '../hooks/useLanguage';
 
 function StatCard({ title, value, icon, color = 'primary' }) {
   return (
@@ -22,20 +23,21 @@ function StatCard({ title, value, icon, color = 'primary' }) {
 }
 
 export default function Dashboard() {
+  const { t } = useLanguage();
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
 
   const statItems = [
-    { key: 'kundenAnzahl', title: 'Kunden', icon: 'bi-people', color: 'primary', group: 'core' },
-    { key: 'projekteAnzahl', title: 'Projekte', icon: 'bi-kanban', color: 'success', group: 'core' },
-    { key: 'ticketsAnzahl', title: 'Tickets', icon: 'bi-ticket-detailed', color: 'warning', group: 'ops' },
-    { key: 'offeneTickets', title: 'Offene Tickets', icon: 'bi-exclamation-circle', color: 'danger', group: 'ops' },
-    { key: 'benutzerAnzahl', title: 'Benutzer', icon: 'bi-person-gear', color: 'info', group: 'core' },
-    { key: 'berichteAnzahl', title: 'Berichte', icon: 'bi-file-earmark-text', color: 'secondary', group: 'ops' },
-    { key: 'aktiveProjekte', title: 'Projekte (aktiv)', icon: 'bi-rocket-takeoff', color: 'success', group: 'core' },
-    { key: 'kritischeTickets', title: 'Tickets (kritisch)', icon: 'bi-bell', color: 'danger', group: 'ops' },
+    { key: 'kundenAnzahl', title: t('dashboard.kundenAnzahl'), icon: 'bi-people', color: 'primary', group: 'core' },
+    { key: 'projekteAnzahl', title: t('dashboard.projekteAnzahl'), icon: 'bi-kanban', color: 'success', group: 'core' },
+    { key: 'ticketsAnzahl', title: t('dashboard.ticketsAnzahl'), icon: 'bi-ticket-detailed', color: 'warning', group: 'ops' },
+    { key: 'offeneTickets', title: t('dashboard.offeneTickets'), icon: 'bi-exclamation-circle', color: 'danger', group: 'ops' },
+    { key: 'benutzerAnzahl', title: t('dashboard.benutzerAnzahl'), icon: 'bi-person-gear', color: 'info', group: 'core' },
+    { key: 'berichteAnzahl', title: t('dashboard.berichteAnzahl'), icon: 'bi-file-earmark-text', color: 'secondary', group: 'ops' },
+    { key: 'aktiveProjekte', title: t('dashboard.aktiveProjekte'), icon: 'bi-rocket-takeoff', color: 'success', group: 'core' },
+    { key: 'kritischeTickets', title: t('dashboard.kritischeTickets'), icon: 'bi-bell', color: 'danger', group: 'ops' },
   ];
 
   const visibleStats = filter === 'all'
@@ -49,7 +51,7 @@ export default function Dashboard() {
       const res = await dashboardApi.getStats();
       setStats(res.data || {});
     } catch (err) {
-      setError(err.response?.data?.message || 'Dashboard verisi alinamadi.');
+      setError(err.response?.data?.message || t('dashboard.error'));
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <Container className="py-4">
-        <LoadingSpinner text="Dashboard verileri yukleniyor..." />
+        <LoadingSpinner text={t('dashboard.loading')} />
       </Container>
     );
   }
@@ -70,14 +72,14 @@ export default function Dashboard() {
   return (
     <Container fluid className="py-4">
       <div className="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
-        <h2 className="mb-0">Dashboard</h2>
+        <h2 className="mb-0">{t('dashboard.title')}</h2>
         <div className="d-flex flex-wrap gap-2">
           <Button
             size="sm"
             variant={filter === 'all' ? 'primary' : 'outline-primary'}
             onClick={() => setFilter('all')}
           >
-            Alle
+            {t('dashboard.all')}
           </Button>
           <Button
             size="sm"
@@ -94,7 +96,7 @@ export default function Dashboard() {
             Ops
           </Button>
           <Button size="sm" variant="outline-dark" onClick={loadStats}>
-            <i className="bi bi-arrow-clockwise me-1" /> Aktualisieren
+            <i className="bi bi-arrow-clockwise me-1" /> {t('dashboard.refresh')}
           </Button>
         </div>
       </div>
@@ -102,7 +104,7 @@ export default function Dashboard() {
       {error && <Alert variant="danger">{error}</Alert>}
 
       {!error && visibleStats.length === 0 && (
-        <Alert variant="light" className="border">Anzuzeigende Daten bulunamadi.</Alert>
+        <Alert variant="light" className="border">{t('dashboard.empty')}</Alert>
       )}
 
       <Row>

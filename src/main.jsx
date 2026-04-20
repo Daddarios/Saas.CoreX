@@ -6,13 +6,16 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import './theme.css'
 import App from './App.jsx'
 import { AuthProvider } from './hooks/useAuth.jsx'
+import { LanguageProvider } from './hooks/useLanguage.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </LanguageProvider>
     </BrowserRouter>
   </StrictMode>,
 )

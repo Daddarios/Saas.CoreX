@@ -3,8 +3,10 @@ import { Alert, Badge, Button, Col, Container, Form, ListGroup, Row, Spinner } f
 import { chatApi } from '../api/chatApi';
 import { useSignalR } from '../hooks/useSignalR';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../hooks/useLanguage';
 
 export default function Chat() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [raeume, setRaeume] = useState([]);
   const [activeRaum, setActiveRaum] = useState(null);
@@ -34,7 +36,7 @@ export default function Chat() {
         setRaeume(list);
         if (list.length > 0) setActiveRaum((prev) => prev || list[0]);
       })
-      .catch((err) => setError(err.response?.data?.message || 'Raeume konnten nicht geladen werden.'))
+      .catch((err) => setError(err.response?.data?.message || t('chat.loadError')))
       .finally(() => setLoadingRooms(false));
   }, []);
 
@@ -71,8 +73,8 @@ export default function Chat() {
       <Row className="h-100">
         <Col md={3} className="border-end pe-0">
           <h5 className="px-3 mb-3">
-            Chat-Räume
-            {status === 'connected' && <Badge bg="success" className="ms-2 small">Online</Badge>}
+            {t('chat.rooms')}
+            {status === 'connected' && <Badge bg="success" className="ms-2 small">{t('common.online')}</Badge>}
             {status === 'reconnecting' && (
               <Badge bg="warning" className="ms-2 small text-dark">Reconnect {reconnectAttempt}</Badge>
             )}
@@ -80,7 +82,7 @@ export default function Chat() {
           {status !== 'connected' && (
             <div className="px-3 pb-2">
               <Button size="sm" variant="outline-secondary" onClick={reconnect}>
-                <i className="bi bi-arrow-clockwise me-1" /> Verbinden
+                <i className="bi bi-arrow-clockwise me-1" /> {t('chat.connect')}
               </Button>
             </div>
           )}
@@ -99,7 +101,7 @@ export default function Chat() {
                 </ListGroup.Item>
               ))}
               {raeume.length === 0 && (
-                <ListGroup.Item className="text-muted">Keine Räume</ListGroup.Item>
+                <ListGroup.Item className="text-muted">{t('chat.noRooms')}</ListGroup.Item>
               )}
             </ListGroup>
           )}
@@ -108,7 +110,7 @@ export default function Chat() {
         <Col md={9} className="d-flex flex-column ps-0">
           {!activeRaum ? (
             <div className="d-flex align-items-center justify-content-center flex-grow-1 text-muted">
-              Wählen Sie einen Chat-Raum
+              {t('chat.chooseRoom')}
             </div>
           ) : (
             <>
@@ -126,7 +128,7 @@ export default function Chat() {
                         <div key={i} className={`mb-2 d-flex ${isOwn ? 'justify-content-end' : ''}`}>
                           <div className={`p-2 rounded-3 ${isOwn ? 'bg-primary text-white' : 'bg-light'}`}
                             style={{ maxWidth: '70%' }}>
-                            {!isOwn && <small className="fw-bold d-block">{n.absenderName || 'Benutzer'}</small>}
+                            {!isOwn && <small className="fw-bold d-block">{n.absenderName || t('chat.user')}</small>}
                             <div>{n.inhalt}</div>
                             <small className={`d-block ${isOwn ? 'text-white-50' : 'text-muted'}`}>
                               {n.geschicktAm?.slice(11, 16)}
@@ -143,12 +145,12 @@ export default function Chat() {
               <div className="p-3 border-top">
                 <div className="d-flex gap-2">
                   <Form.Control
-                    placeholder="Nachricht schreiben..."
+                    placeholder={t('chat.writeMessage')}
                     value={newMsg}
                     onChange={(e) => setNewMsg(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                   />
-                  <Button onClick={sendMessage} disabled={!connected}>Senden</Button>
+                  <Button onClick={sendMessage} disabled={!connected}>{t('common.send')}</Button>
                 </div>
               </div>
             </>

@@ -3,8 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Container, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { authApi } from '../api/authApi';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../hooks/useLanguage';
 
 export default function ZweiFaktor() {
+  const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -24,7 +26,7 @@ export default function ZweiFaktor() {
       login(res.data);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Code ungültig oder abgelaufen.');
+      setError(err.response?.data?.message || t('auth.invalidCode'));
     } finally {
       setLoading(false);
     }
@@ -39,16 +41,16 @@ export default function ZweiFaktor() {
     <Container className="d-flex align-items-center justify-content-center min-vh-100">
       <Card style={{ width: '100%', maxWidth: '420px' }} className="shadow">
         <Card.Body className="p-4">
-          <h3 className="text-center mb-3">🔐 Zwei-Faktor</h3>
+          <h3 className="text-center mb-3">🔐 {t('auth.twoFactor')}</h3>
           <p className="text-center text-muted mb-4">
-            Ein Bestätigungscode wurde an <strong>{email}</strong> gesendet.
+            {t('auth.codeSent')} <strong>{email}</strong>.
           </p>
 
           {error && <Alert variant="danger">{error}</Alert>}
 
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label>6-stelliger Code</Form.Label>
+              <Form.Label>{t('auth.codeLabel')}</Form.Label>
               <Form.Control
                 type="text"
                 placeholder="123456"
@@ -61,7 +63,7 @@ export default function ZweiFaktor() {
             </Form.Group>
 
             <Button type="submit" variant="primary" className="w-100" disabled={loading}>
-              {loading ? <Spinner size="sm" /> : 'Bestätigen'}
+              {loading ? <Spinner size="sm" /> : t('auth.verify')}
             </Button>
           </Form>
         </Card.Body>
