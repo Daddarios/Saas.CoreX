@@ -151,7 +151,10 @@ function KundeModal({ show, onHide, onSave, initial, error }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(form);
+    const payload = Object.fromEntries(
+      Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]),
+    );
+    onSave(payload);
   };
 
   return (
@@ -174,13 +177,13 @@ function KundeModal({ show, onHide, onSave, initial, error }) {
                 onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
             <div className="col-md-6">
-              <Form.Label>{t('kunden.firstName')}</Form.Label>
-              <Form.Control value={form.vorname}
+              <Form.Label>{t('kunden.firstName')} *</Form.Label>
+              <Form.Control required value={form.vorname}
                 onChange={(e) => setForm({ ...form, vorname: e.target.value })} />
             </div>
             <div className="col-md-6">
-              <Form.Label>{t('kunden.lastName')}</Form.Label>
-              <Form.Control value={form.nachname}
+              <Form.Label>{t('kunden.lastName')} *</Form.Label>
+              <Form.Control required value={form.nachname}
                 onChange={(e) => setForm({ ...form, nachname: e.target.value })} />
             </div>
             <div className="col-md-6">

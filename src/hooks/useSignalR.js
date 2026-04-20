@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { getAccessToken } from '../api/axiosClient';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 const BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
 
 export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
   const connectionRef = useRef(null);
+  const startingRef = useRef(false);
   const handlersRef = useRef(onReceive);
   const registeredHandlersRef = useRef({});
   const [connected, setConnected] = useState(false);
@@ -14,17 +16,31 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
 
   handlersRef.current = onReceive;
 
-  const startConnection = useCallback(async (connection) => {
+  const startConnection = useCallback(async (connection, cancelledRef) => {
     if (!connection || connection.state === 'Connected') return;
+    if (startingRef.current) return;
 
+    // Auth token yoksa başlatma
+    const token = getAccessToken();
+    if (!token) {
+      setStatus('disconnected');
+      return;
+    }
+
+    startingRef.current = true;
     let attempts = 0;
     while (attempts < 5) {
+      if (cancelledRef?.current) {
+        startingRef.current = false;
+        return;
+      }
       try {
         setStatus('connecting');
         await connection.start();
         setConnected(true);
         setStatus('connected');
         setReconnectAttempt(0);
+        startingRef.current = false;
         return;
       } catch {
         attempts += 1;
@@ -37,11 +53,17 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
       }
     }
 
+    startingRef.current = false;
     setConnected(false);
     setStatus('disconnected');
   }, []);
 
   useEffect(() => {
+    // StrictMode guard — önceki connection varsa yeni oluşturma
+    if (connectionRef.current) return;
+
+    const cancelled = { current: false };
+
     const connection = new HubConnectionBuilder()
       .withUrl(`${BASE_URL}${hubPath}`, { withCredentials: true })
       .withAutomaticReconnect()
@@ -67,14 +89,18 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
     connectionRef.current = connection;
 
     if (autoStart) {
-      startConnection(connection);
+      startConnection(connection, cancelled);
     }
 
     return () => {
+      cancelled.current = true;
       Object.entries(registeredHandlersRef.current).forEach(([method, handler]) => {
         connection.off(method, handler);
       });
-      connection.stop();
+      connection.stop().then(() => {
+        connectionRef.current = null;
+        startingRef.current = false;
+      });
     };
   }, [autoStart, hubPath, startConnection]);
 
@@ -103,7 +129,7 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
   };
 
   const reconnect = async () => {
-    await startConnection(connectionRef.current);
+    await startConnection(connectionRef.current, { current: false });
   };
 
   return {

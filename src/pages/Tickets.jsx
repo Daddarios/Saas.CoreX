@@ -15,6 +15,7 @@ import StatusBadge from '../components/shared/StatusBadge';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { ticketApi } from '../api/ticketApi';
+import { kundeApi } from '../api/kundeApi';
 import { useSignalR } from '../hooks/useSignalR';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -64,11 +65,15 @@ export default function Tickets() {
 
   const handleSave = async (formData) => {
     setError('');
+    // Boş string'leri null'a çevir — backend validation hatasını önler
+    const payload = Object.fromEntries(
+      Object.entries(formData).map(([k, v]) => [k, v === '' ? null : v]),
+    );
     try {
       if (editItem) {
-        await ticketApi.update(editItem.id, formData);
+        await ticketApi.update(editItem.id, payload);
       } else {
-        await ticketApi.create(formData);
+        await ticketApi.create(payload);
       }
       setShowModal(false);
       setEditItem(null);
@@ -172,10 +177,20 @@ export default function Tickets() {
 
 function TicketModal({ show, onHide, onSave, initial, error }) {
   const { t } = useLanguage();
+  const [kunden, setKunden] = useState([]);
   const [form, setForm] = useState({
     titel: '', beschreibung: '', status: 'Offen', prioritaet: 'Mittel',
-    kategorie: '', faelligkeitsdatum: '',
+    kategorie: '', faelligkeitsdatum: '', kundeId: '',
   });
+
+  // Müşteri listesini yükle
+  useEffect(() => {
+    if (show) {
+      kundeApi.getAll(1, 200).then((res) => {
+        setKunden(res.data?.items || res.data || []);
+      }).catch(() => {});
+    }
+  }, [show]);
 
   useEffect(() => {
     if (initial) {
@@ -186,10 +201,11 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
         prioritaet: initial.prioritaet || 'Mittel',
         kategorie: initial.kategorie || '',
         faelligkeitsdatum: initial.faelligkeitsdatum?.slice(0, 10) || '',
+        kundeId: initial.kundeId || '',
       });
     } else {
       setForm({ titel: '', beschreibung: '', status: 'Offen', prioritaet: 'Mittel',
-        kategorie: '', faelligkeitsdatum: '' });
+        kategorie: '', faelligkeitsdatum: '', kundeId: '' });
     }
   }, [initial, show]);
 
@@ -204,7 +220,19 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
           <div className="row g-3">
-            <div className="col-12">
+            <div className="col-md-6">
+              <Form.Label>{t('kunden.title')} *</Form.Label>
+              <Form.Select required value={form.kundeId}
+                onChange={(e) => setForm({ ...form, kundeId: e.target.value })}>
+                <option value="">{t('common.select')}...</option>
+                {kunden.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.unternehmen} — {k.vorname} {k.nachname}
+                  </option>
+                ))}
+              </Form.Select>
+            </div>
+            <div className="col-md-6">
               <Form.Label>{t('common.title')} *</Form.Label>
               <Form.Control required value={form.titel}
                 onChange={(e) => setForm({ ...form, titel: e.target.value })} />

@@ -5,6 +5,7 @@ import StatusBadge from '../components/shared/StatusBadge';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { projektApi } from '../api/projektApi';
+import { kundeApi } from '../api/kundeApi';
 import { useLanguage } from '../hooks/useLanguage';
 
 const statusOptions = ['NichtGestartet', 'InBearbeitung', 'Abgeschlossen', 'Pausiert'];
@@ -113,10 +114,20 @@ export default function Projekte() {
 
 function ProjektModal({ show, onHide, onSave, initial, error }) {
   const { t } = useLanguage();
+  const [kunden, setKunden] = useState([]);
   const [form, setForm] = useState({
     name: '', beschreibung: '', startdatum: '', enddatum: '',
     status: 'NichtGestartet', prioritaet: 'Mittel', abschlussInProzent: 0,
+    kundeId: '',
   });
+
+  useEffect(() => {
+    if (show) {
+      kundeApi.getAll(1, 200).then((res) => {
+        setKunden(res.data?.items || res.data || []);
+      }).catch(() => {});
+    }
+  }, [show]);
 
   useEffect(() => {
     if (initial) {
@@ -128,14 +139,22 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
         status: initial.status || 'NichtGestartet',
         prioritaet: initial.prioritaet || 'Mittel',
         abschlussInProzent: initial.abschlussInProzent ?? 0,
+        kundeId: initial.kundeId || '',
       });
     } else {
       setForm({ name: '', beschreibung: '', startdatum: '', enddatum: '',
-        status: 'NichtGestartet', prioritaet: 'Mittel', abschlussInProzent: 0 });
+        status: 'NichtGestartet', prioritaet: 'Mittel', abschlussInProzent: 0, kundeId: '' });
     }
   }, [initial, show]);
 
-  const handleSubmit = (e) => { e.preventDefault(); onSave(form); };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Boş string’leri null’a çevir
+    const payload = Object.fromEntries(
+      Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]),
+    );
+    onSave(payload);
+  };
 
   return (
     <Modal show={show} onHide={onHide} size="lg">
@@ -146,7 +165,19 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
           <div className="row g-3">
-            <div className="col-12">
+            <div className="col-md-6">
+              <Form.Label>{t('kunden.title')} *</Form.Label>
+              <Form.Select required value={form.kundeId}
+                onChange={(e) => setForm({ ...form, kundeId: e.target.value })}>
+                <option value="">{t('common.select')}...</option>
+                {kunden.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.unternehmen} — {k.vorname} {k.nachname}
+                  </option>
+                ))}
+              </Form.Select>
+            </div>
+            <div className="col-md-6">
               <Form.Label>{t('projekte.name')} *</Form.Label>
               <Form.Control required value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })} />

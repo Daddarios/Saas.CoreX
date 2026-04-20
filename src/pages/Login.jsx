@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { authApi } from '../api/authApi';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -10,6 +9,8 @@ export default function Login() {
   const [passwort, setPasswort] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -19,7 +20,6 @@ export default function Login() {
 
     try {
       await authApi.login(email, passwort);
-      // 2FA code gönderildi → ZweiFaktor sayfasına yönlendir
       navigate('/verify', { state: { email } });
     } catch (err) {
       setError(err.response?.data?.nachricht || err.response?.data?.message || t('auth.loginFailed'));
@@ -29,43 +29,82 @@ export default function Login() {
   };
 
   return (
-    <Container className="d-flex align-items-center justify-content-center min-vh-100">
-      <Card style={{ width: '100%', maxWidth: '420px' }} className="shadow">
-        <Card.Body className="p-4">
-          <h3 className="text-center mb-4">🏢 {t('auth.loginTitle')}</h3>
-          <p className="text-center text-muted mb-4">{t('auth.signIn')}</p>
+    <div className="login-page-wrapper">
+      <div className="login-box">
+        <form onSubmit={handleSubmit} autoComplete="off">
+          <div className="login-form">
+            <div className="login-header">
+              <h2>CoreX</h2>
+            </div>
+            <div className="login-body">
+              <div className="login-field-group">
+                <small>E-Mail</small>
+                <input
+                  type="email"
+                  className="login-input"
+                  placeholder="Ihre E-mail @"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="off"
+                />
+              </div>
+              <div className="login-field-group login-field-password">
+                <small>Passwort</small>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="login-input"
+                  placeholder="Ihre Passwort"
+                  value={passwort}
+                  onChange={(e) => setPasswort(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+                <span
+                  className="login-toggle-password"
+                  onClick={() => setShowPassword((v) => !v)}
+                  title="Passwort anzeigen/verbergen"
+                >
+                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} />
+                </span>
+              </div>
 
-          {error && <Alert variant="danger">{error}</Alert>}
+              <div className="login-remember">
+                <input
+                  id="remember"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <b>Remember Me</b>
+              </div>
 
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label>{t('auth.email')}</Form.Label>
-              <Form.Control
-                type="email"
-                placeholder="name@firma.de"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </Form.Group>
+              <button className="login-btn" type="submit" disabled={loading}>
+                {loading ? 'Authentifizierung läuft...' : 'Login'}
+              </button>
 
-            <Form.Group className="mb-3">
-              <Form.Label>{t('auth.password')}</Form.Label>
-              <Form.Control
-                type="password"
-                placeholder="••••••••"
-                value={passwort}
-                onChange={(e) => setPasswort(e.target.value)}
-                required
-              />
-            </Form.Group>
+              {loading && (
+                <div className="login-spinner-wrap">
+                  <div className="login-spinner" />
+                  <p>Bitte warten...</p>
+                </div>
+              )}
+            </div>
 
-            <Button type="submit" variant="primary" className="w-100" disabled={loading}>
-              {loading ? <Spinner size="sm" /> : t('auth.signIn')}
-            </Button>
-          </Form>
-        </Card.Body>
-      </Card>
-    </Container>
+            {error && (
+              <ins className="login-error">
+                {error} <i className="bi bi-exclamation-triangle" style={{ color: '#f14a1c' }} />
+              </ins>
+            )}
+          </div>
+        </form>
+      </div>
+
+      <footer className="login-footer">
+        <p id="alt1">Vista CoreX</p>
+        <p id="alt2">© {new Date().getFullYear()} All rights reserved</p>
+      </footer>
+    </div>
   );
 }
+

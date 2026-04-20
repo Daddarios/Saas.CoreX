@@ -83,7 +83,7 @@ export default function Header({
           onClick={toggleTheme}
           aria-label={`${t('header.themeMode', 'Theme mode')}: ${t(`header.${themeMode}`, themeMode)}`}
         >
-          <i className={`bi ${isDarkMode ? 'bi-moon-stars-fill' : 'bi-sun-fill'}`} />
+          <i className={`bi ${isDarkMode ? 'bi-moon-stars-fill' : 'bi bi-brightness-high'}`} />
         </button>
 
         <button
@@ -92,7 +92,7 @@ export default function Header({
           aria-label={t('header.themeSettings', 'Theme settings')}
           onClick={() => setSettingsOpen(true)}
         >
-          <i className="bi bi-sliders2" />
+          <i className="bi bi-sliders" />
         </button>
 
         <Dropdown align="end">

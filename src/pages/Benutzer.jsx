@@ -6,7 +6,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { benutzerApi } from '../api/benutzerApi';
 import { useLanguage } from '../hooks/useLanguage';
 
-const rollen = ['Admin', 'Manager', 'Mitarbeiter'];
+const rollen = ['SuperAdmin', 'Admin', 'Manager', 'Mitarbeiter'];
 
 export default function Benutzer() {
   const { t } = useLanguage();
@@ -133,7 +133,11 @@ export default function Benutzer() {
 
 function BenutzerModal({ show, initial, onHide, onSave }) {
   const { t } = useLanguage();
-  const [form, setForm] = useState({ vorname: '', nachname: '', email: '', rolle: 'Mitarbeiter' });
+  const isEdit = !!initial;
+  const [form, setForm] = useState({
+    vorname: '', nachname: '', email: '', rolle: 'Mitarbeiter',
+    passwort: '', rufNummer: '', abteilung: '', hinweise: '',
+  });
 
   useEffect(() => {
     if (initial) {
@@ -142,19 +146,36 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
         nachname: initial.nachname || '',
         email: initial.email || '',
         rolle: initial.rolle || 'Mitarbeiter',
+        passwort: '',
+        rufNummer: initial.rufNummer || '',
+        abteilung: initial.abteilung || '',
+        hinweise: initial.hinweise || '',
       });
     } else {
-      setForm({ vorname: '', nachname: '', email: '', rolle: 'Mitarbeiter' });
+      setForm({
+        vorname: '', nachname: '', email: '', rolle: 'Mitarbeiter',
+        passwort: '', rufNummer: '', abteilung: '', hinweise: '',
+      });
     }
   }, [initial, show]);
 
   const submit = (e) => {
     e.preventDefault();
-    onSave(form);
+    // Edit modunda passwort gönderme (PUT endpoint'inde yok)
+    const payload = { ...form };
+    if (isEdit) {
+      delete payload.passwort;
+      delete payload.email;
+    }
+    // Boş string'leri null'a çevir
+    const cleaned = Object.fromEntries(
+      Object.entries(payload).map(([k, v]) => [k, v === '' ? null : v]),
+    );
+    onSave(cleaned);
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered>
+    <Modal show={show} onHide={onHide} centered size="lg">
       <Form onSubmit={submit}>
         <Modal.Header closeButton>
           <Modal.Title>{initial ? t('benutzer.editTitle') : t('benutzer.newTitle')}</Modal.Title>
@@ -177,16 +198,29 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
                 onChange={(e) => setForm({ ...form, nachname: e.target.value })}
               />
             </div>
-            <div className="col-12">
+            <div className="col-md-6">
               <Form.Label>{t('auth.email')} *</Form.Label>
               <Form.Control
                 required
                 type="email"
                 value={form.email}
+                disabled={isEdit}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
             </div>
-            <div className="col-12">
+            {!isEdit && (
+              <div className="col-md-6">
+                <Form.Label>Passwort *</Form.Label>
+                <Form.Control
+                  required
+                  type="password"
+                  value={form.passwort}
+                  onChange={(e) => setForm({ ...form, passwort: e.target.value })}
+                  placeholder="min 8, A-z, 0-9, Sonderzeichen"
+                />
+              </div>
+            )}
+            <div className="col-md-4">
               <Form.Label>{t('benutzer.role')}</Form.Label>
               <Form.Select
                 value={form.rolle}
@@ -196,6 +230,27 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
                   <option key={r} value={r}>{r}</option>
                 ))}
               </Form.Select>
+            </div>
+            <div className="col-md-4">
+              <Form.Label>Rufnummer</Form.Label>
+              <Form.Control
+                value={form.rufNummer}
+                onChange={(e) => setForm({ ...form, rufNummer: e.target.value })}
+              />
+            </div>
+            <div className="col-md-4">
+              <Form.Label>Abteilung</Form.Label>
+              <Form.Control
+                value={form.abteilung}
+                onChange={(e) => setForm({ ...form, abteilung: e.target.value })}
+              />
+            </div>
+            <div className="col-12">
+              <Form.Label>Hinweise</Form.Label>
+              <Form.Control as="textarea" rows={2}
+                value={form.hinweise}
+                onChange={(e) => setForm({ ...form, hinweise: e.target.value })}
+              />
             </div>
           </div>
         </Modal.Body>

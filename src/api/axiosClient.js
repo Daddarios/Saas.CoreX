@@ -51,12 +51,29 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-const AUTH_URLS = ['/auth/login', '/auth/verify', '/auth/refresh'];
+const AUTH_URLS = ['/auth/login', '/auth/verify', '/auth/refresh', '/auth/me'];
 const isAuthEndpoint = (url) => AUTH_URLS.some((u) => url?.includes(u));
+
+// Backend hata mesajı normalizasyonu — 'nachricht' veya 'message' alanını okur
+const normalizeError = (error) => {
+  const data = error.response?.data;
+  if (data) {
+    if (!data.message && data.nachricht) {
+      data.message = data.nachricht;
+    }
+    // Validation errors varsa birleştir
+    if (!data.message && data.errors) {
+      const msgs = Object.values(data.errors).flat();
+      if (msgs.length) data.message = msgs.join('; ');
+    }
+  }
+  return error;
+};
 
 axiosClient.interceptors.response.use(
   (res) => res,
   async (error) => {
+    normalizeError(error);
     const original = error.config;
 
     if (error.response?.status !== 401 || original._retry || isAuthEndpoint(original.url)) {
