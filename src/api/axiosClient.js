@@ -58,12 +58,14 @@ const isAuthEndpoint = (url) => AUTH_URLS.some((u) => url?.includes(u));
 const normalizeError = (error) => {
   const data = error.response?.data;
   if (data) {
+    console.error('Backend Hatası:', data);
     if (!data.message && data.nachricht) {
       data.message = data.nachricht;
     }
-    // Validation errors varsa birleştir
-    if (!data.message && data.errors) {
-      const msgs = Object.values(data.errors).flat();
+    // Validation errors (errors veya fehler) varsa birleştir
+    const validationErrors = data.errors || data.fehler;
+    if (!data.message && validationErrors) {
+      const msgs = Object.values(validationErrors).flat();
       if (msgs.length) data.message = msgs.join('; ');
     }
   }

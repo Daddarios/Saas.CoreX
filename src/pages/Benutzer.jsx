@@ -6,7 +6,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { benutzerApi } from '../api/benutzerApi';
 import { useLanguage } from '../hooks/useLanguage';
 
-const rollen = ['SuperAdmin', 'Admin', 'Manager', 'Mitarbeiter'];
+const rollen = ['SuperAdmin', 'Admin', 'Manager', 'Standard', 'NurLesen'];
 
 export default function Benutzer() {
   const { t } = useLanguage();
@@ -135,7 +135,7 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
   const { t } = useLanguage();
   const isEdit = !!initial;
   const [form, setForm] = useState({
-    vorname: '', nachname: '', email: '', rolle: 'Mitarbeiter',
+    vorname: '', nachname: '', email: '', rolle: 'Standard',
     passwort: '', rufNummer: '', abteilung: '', hinweise: '',
   });
 
@@ -145,7 +145,7 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
         vorname: initial.vorname || '',
         nachname: initial.nachname || '',
         email: initial.email || '',
-        rolle: initial.rolle || 'Mitarbeiter',
+        rolle: initial.rolle || 'Standard',
         passwort: '',
         rufNummer: initial.rufNummer || '',
         abteilung: initial.abteilung || '',
@@ -153,7 +153,7 @@ function BenutzerModal({ show, initial, onHide, onSave }) {
       });
     } else {
       setForm({
-        vorname: '', nachname: '', email: '', rolle: 'Mitarbeiter',
+        vorname: '', nachname: '', email: '', rolle: 'Standard',
         passwort: '', rufNummer: '', abteilung: '', hinweise: '',
       });
     }
