@@ -1,7 +1,13 @@
+// ============================================================================
+// === IMPORTS ===
+// ============================================================================
 import { Table, Pagination, Form, InputGroup } from 'react-bootstrap';
 import { useState } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
 
+// ============================================================================
+// === MAIN COMPONENT: DATA TABLE ===
+// ============================================================================
 export default function DataTable({
   columns,
   data,
@@ -13,16 +19,21 @@ export default function DataTable({
   searchPlaceholder = 'Suchen...',
 }) {
   const { t } = useLanguage();
+
+  // ---------- STATE MANAGEMENT ----------
   const [searchTerm, setSearchTerm] = useState('');
   const totalPages = Math.ceil(Math.max(totalCount, data.length) / size);
 
+  // ---------- HANDLERS ----------
   const handleSearch = (e) => {
     e.preventDefault();
     onSearch?.(searchTerm);
   };
 
+  // ---------- RENDER ----------
   return (
     <>
+      {/* === SEARCH FORM === */}
       {onSearch && (
         <Form onSubmit={handleSearch} className="mb-3">
           <InputGroup>
@@ -38,15 +49,16 @@ export default function DataTable({
         </Form>
       )}
 
-      <Table striped hover responsive className="align-middle shadow-sm rounded overflow-hidden">
-        <thead className="table-dark">
+      {/* === TABLE === */}
+      <Table striped hover responsive className=" align-middle shadow-sm rounded overflow-hidden">
+        <thead className="table-dark cell-align-middle text-center">
           <tr>
             {columns.map((col) => (
               <th key={col.key}>{col.label}</th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="table-light cell-align-middle text-center ">
           {data.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="text-center text-muted py-4">
@@ -67,6 +79,7 @@ export default function DataTable({
         </tbody>
       </Table>
 
+      {/* === PAGINATION === */}
       {totalPages > 1 && (
         <Pagination className="justify-content-center">
           <Pagination.Prev disabled={page <= 1} onClick={() => onPageChange?.(page - 1)}>{t('common.previous')}</Pagination.Prev>

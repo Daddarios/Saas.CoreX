@@ -16,8 +16,11 @@ import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { ticketApi } from '../api/ticketApi';
 import { kundeApi } from '../api/kundeApi';
+import { projektApi } from '../api/projektApi';
+import { benutzerApi } from '../api/benutzerApi';
 import { useSignalR } from '../hooks/useSignalR';
 import { useLanguage } from '../hooks/useLanguage';
+import { parseApiError, ApiError } from '../api/errorHandler';
 
 const statusOptions = ['Offen', 'InBearbeitung', 'Geloest', 'Geschlossen'];
 const prioritaetOptions = ['Niedrig', 'Mittel', 'Hoch', 'Kritisch'];
@@ -79,7 +82,8 @@ export default function Tickets() {
       setEditItem(null);
       load();
     } catch (err) {
-      setError(err.response?.data?.message || t('tickets.saveError'));
+      const apiErr = parseApiError(err);
+      setError(apiErr.getLocalizedMessage(t));
     }
   };
 
@@ -108,6 +112,7 @@ export default function Tickets() {
     { key: 'prioritaet', label: t('common.priority'), render: (r) => <StatusBadge value={r.prioritaet} /> },
     { key: 'kategorie', label: t('common.category') },
     { key: 'faelligkeitsdatum', label: t('tickets.dueDate'), render: (r) => r.faelligkeitsdatum?.slice(0, 10) || '—' },
+    { key: 'zugewiesenAnName', label: 'Zugewiesen', render: (r) => r.zugewiesenAnName || '—' },
     {
       key: 'actions', label: t('common.actions'),
       render: (row) => (
@@ -178,16 +183,24 @@ export default function Tickets() {
 function TicketModal({ show, onHide, onSave, initial, error }) {
   const { t } = useLanguage();
   const [kunden, setKunden] = useState([]);
+  const [projekte, setProjekte] = useState([]);
+  const [benutzer, setBenutzer] = useState([]);
   const [form, setForm] = useState({
     titel: '', beschreibung: '', status: 'Offen', prioritaet: 'Mittel',
-    kategorie: '', faelligkeitsdatum: '', kundeId: '',
+    kategorie: '', faelligkeitsdatum: '', kundeId: '', projektId: '', zugewiesenAnId: '',
   });
 
-  // Müşteri listesini yükle
+  // Dropdown listelerini yükle
   useEffect(() => {
     if (show) {
       kundeApi.getAll(1, 200).then((res) => {
         setKunden(res.data?.items || res.data || []);
+      }).catch(() => {});
+      projektApi.getAll(1, 200).then((res) => {
+        setProjekte(res.data?.items || res.data || []);
+      }).catch(() => {});
+      benutzerApi.getAll(1, 200).then((res) => {
+        setBenutzer(res.data?.items || res.data || []);
       }).catch(() => {});
     }
   }, [show]);
@@ -202,10 +215,12 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
         kategorie: initial.kategorie || '',
         faelligkeitsdatum: initial.faelligkeitsdatum?.slice(0, 10) || '',
         kundeId: initial.kundeId || '',
+        projektId: initial.projektId || '',
+        zugewiesenAnId: initial.zugewiesenAnId || '',
       });
     } else {
       setForm({ titel: '', beschreibung: '', status: 'Offen', prioritaet: 'Mittel',
-        kategorie: '', faelligkeitsdatum: '', kundeId: '' });
+        kategorie: '', faelligkeitsdatum: '', kundeId: '', projektId: '', zugewiesenAnId: '' });
     }
   }, [initial, show]);
 
@@ -266,6 +281,26 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
               <Form.Control type="date" value={form.faelligkeitsdatum}
                 onChange={(e) => setForm({ ...form, faelligkeitsdatum: e.target.value })} />
             </div>
+            <div className="col-md-6">
+              <Form.Label>Projekt</Form.Label>
+              <Form.Select value={form.projektId}
+                onChange={(e) => setForm({ ...form, projektId: e.target.value })}>
+                <option value="">{t('common.select')}...</option>
+                {projekte.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </Form.Select>
+            </div>
+            <div className="col-md-6">
+              <Form.Label>Zugewiesen an</Form.Label>
+              <Form.Select value={form.zugewiesenAnId}
+                onChange={(e) => setForm({ ...form, zugewiesenAnId: e.target.value })}>
+                <option value="">{t('common.select')}...</option>
+                {benutzer.map((b) => (
+                  <option key={b.id} value={b.id}>{b.vorname} {b.nachname}</option>
+                ))}
+              </Form.Select>
+            </div>
           </div>
         </Modal.Body>
         <Modal.Footer>
@@ -281,6 +316,7 @@ function TicketDetail({ ticket, onHide }) {
   const { t } = useLanguage();
   const [nachrichten, setNachrichten] = useState([]);
   const [newMsg, setNewMsg] = useState('');
+  const [istInternNotiz, setIstInternNotiz] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -293,8 +329,9 @@ function TicketDetail({ ticket, onHide }) {
   const sendMsg = async () => {
     if (!newMsg.trim()) return;
     try {
-      await ticketApi.addNachricht({ ticketId: ticket.id, inhalt: newMsg, istInternNotiz: false });
+      await ticketApi.addNachricht({ ticketId: ticket.id, inhalt: newMsg, istInternNotiz });
       setNewMsg('');
+      setIstInternNotiz(false);
       const res = await ticketApi.getNachrichten(ticket.id);
       setNachrichten(res.data);
     } catch { /* ignore */ }
@@ -327,8 +364,17 @@ function TicketDetail({ ticket, onHide }) {
         <div className="d-flex gap-2">
           <Form.Control placeholder={t('tickets.writeMessage')} value={newMsg}
             onChange={(e) => setNewMsg(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMsg()} />
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMsg()} />
           <Button onClick={sendMsg}>{t('common.send')}</Button>
+        </div>
+        <div className="mt-2">
+          <Form.Check
+            type="checkbox"
+            id="intern-notiz-check"
+            label={<span className="small text-warning fw-semibold"><i className="bi bi-lock me-1" />Interne Notiz</span>}
+            checked={istInternNotiz}
+            onChange={(e) => setIstInternNotiz(e.target.checked)}
+          />
         </div>
       </Modal.Body>
     </Modal>

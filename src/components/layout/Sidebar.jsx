@@ -7,6 +7,7 @@ const navItems = [
   { to: '/projekte', labelKey: 'sidebar.projekte', icon: 'bi-kanban' },
   { to: '/tickets', labelKey: 'sidebar.tickets', icon: 'bi-ticket-detailed' },
   { to: '/benutzer', labelKey: 'sidebar.benutzer', icon: 'bi-person-gear' },
+  { to: '/berichte', labelKey: 'sidebar.berichte', icon: 'bi-file-earmark-text' },
   { to: '/chat', labelKey: 'sidebar.chat', icon: 'bi-chat-dots' },
 ];
 

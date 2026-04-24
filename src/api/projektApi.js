@@ -11,4 +11,10 @@ export const projektApi = {
   update: (id, data) => axiosClient.put(`/projekt/${id}`, data),
 
   delete: (id) => axiosClient.delete(`/projekt/${id}`),
+
+  assignBenutzer: (projektId, benutzerId) =>
+    axiosClient.post(`/projekt/${projektId}/benutzer`, { benutzerId }),
+
+  removeBenutzer: (projektId, benutzerId) =>
+    axiosClient.delete(`/projekt/${projektId}/benutzer/${benutzerId}`),
 };

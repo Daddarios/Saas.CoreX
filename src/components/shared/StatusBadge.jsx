@@ -1,6 +1,12 @@
+// ============================================================================
+// === IMPORTS ===
+// ============================================================================
 import { Badge } from 'react-bootstrap';
 import { useLanguage } from '../../hooks/useLanguage';
 
+// ============================================================================
+// === CONSTANTS & MAPPINGS ===
+// ============================================================================
 const statusColors = {
   // Ticket
   Offen: 'primary',
@@ -18,6 +24,7 @@ const statusColors = {
   Kritisch: 'dark',
 };
 
+// Status label translations
 const statusLabels = {
   Offen: 'Offen',
   InBearbeitung: 'In Bearbeitung',
@@ -32,8 +39,13 @@ const statusLabels = {
   Kritisch: 'Kritisch',
 };
 
+// ============================================================================
+// === MAIN COMPONENT: STATUS BADGE ===
+// ============================================================================
 export default function StatusBadge({ value }) {
   const { t } = useLanguage();
+
+  // ---------- RENDER ----------
   const color = statusColors[value] || 'secondary';
   const label = t(`status.${value}`, statusLabels[value] || value);
 

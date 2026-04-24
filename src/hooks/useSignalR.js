@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
 import { getAccessToken } from '../api/axiosClient';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
@@ -65,7 +65,11 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
     const cancelled = { current: false };
 
     const connection = new HubConnectionBuilder()
-      .withUrl(`${BASE_URL}${hubPath}`, { withCredentials: true })
+      .withUrl(`${BASE_URL}${hubPath}`, {
+        withCredentials: true,
+        accessTokenFactory: () => getAccessToken() ?? undefined,
+        transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
+      })
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Warning)
       .build();

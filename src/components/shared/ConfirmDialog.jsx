@@ -1,6 +1,12 @@
+// ============================================================================
+// === IMPORTS ===
+// ============================================================================
 import { Button, Modal } from 'react-bootstrap';
 import { useLanguage } from '../../hooks/useLanguage';
 
+// ============================================================================
+// === MAIN COMPONENT: CONFIRM DIALOG ===
+// ============================================================================
 export default function ConfirmDialog({
   show,
   title = 'Bitte bestaetigen',
@@ -13,6 +19,7 @@ export default function ConfirmDialog({
 }) {
   const { t } = useLanguage();
 
+  // ---------- RENDER ----------
   return (
     <Modal show={show} onHide={onCancel} centered>
       <Modal.Header closeButton>

@@ -9,6 +9,7 @@ import Projekte from './pages/Projekte';
 import Tickets from './pages/Tickets';
 import Chat from './pages/Chat';
 import Benutzer from './pages/Benutzer';
+import Berichte from './pages/Berichte';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
         <Route path="tickets" element={<Tickets />} />
         <Route path="chat" element={<Chat />} />
         <Route path="benutzer" element={<Benutzer />} />
+        <Route path="berichte" element={<Berichte />} />
       </Route>
     </Routes>
   );

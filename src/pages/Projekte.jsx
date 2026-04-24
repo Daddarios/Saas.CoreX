@@ -7,6 +7,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { projektApi } from '../api/projektApi';
 import { kundeApi } from '../api/kundeApi';
 import { useLanguage } from '../hooks/useLanguage';
+import { parseApiError, ApiError } from '../api/errorHandler';
 
 const statusOptions = ['NichtGestartet', 'InBearbeitung', 'Abgeschlossen', 'Pausiert'];
 const prioritaetOptions = ['Niedrig', 'Mittel', 'Hoch', 'Kritisch'];
@@ -48,7 +49,8 @@ export default function Projekte() {
       setEditItem(null);
       load();
     } catch (err) {
-      setError(err.response?.data?.message || t('projekte.saveError'));
+      const apiErr = parseApiError(err);
+      setError(apiErr.getLocalizedMessage(t));
     }
   };
 
@@ -118,7 +120,7 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
   const [form, setForm] = useState({
     name: '', beschreibung: '', startdatum: '', enddatum: '',
     status: 'NichtGestartet', prioritaet: 'Mittel', abschlussInProzent: 0,
-    kundeId: '',
+    kundeId: '', istAbgeschlossen: false,
   });
 
   useEffect(() => {
@@ -140,10 +142,11 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
         prioritaet: initial.prioritaet || 'Mittel',
         abschlussInProzent: initial.abschlussInProzent ?? 0,
         kundeId: initial.kundeId || '',
+        istAbgeschlossen: initial.istAbgeschlossen ?? false,
       });
     } else {
       setForm({ name: '', beschreibung: '', startdatum: '', enddatum: '',
-        status: 'NichtGestartet', prioritaet: 'Mittel', abschlussInProzent: 0, kundeId: '' });
+        status: 'NichtGestartet', prioritaet: 'Mittel', abschlussInProzent: 0, kundeId: '', istAbgeschlossen: false });
     }
   }, [initial, show]);
 
@@ -215,6 +218,15 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
               <Form.Label>{t('projekte.completion')}</Form.Label>
               <Form.Control type="number" min={0} max={100} value={form.abschlussInProzent}
                 onChange={(e) => setForm({ ...form, abschlussInProzent: +e.target.value })} />
+            </div>
+            <div className="col-md-4 d-flex align-items-end">
+              <Form.Check
+                type="checkbox"
+                id="ist-abgeschlossen"
+                label="Abgeschlossen"
+                checked={form.istAbgeschlossen}
+                onChange={(e) => setForm({ ...form, istAbgeschlossen: e.target.checked })}
+              />
             </div>
           </div>
         </Modal.Body>

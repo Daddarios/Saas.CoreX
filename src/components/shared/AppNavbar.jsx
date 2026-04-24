@@ -1,21 +1,29 @@
+// ============================================================================
+// === IMPORTS ===
+// ============================================================================
 import { Container, Nav, Navbar, NavDropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
+// ============================================================================
+// === MAIN COMPONENT: APP NAVBAR ===
+// ============================================================================
 export default function AppNavbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // ---------- HANDLERS ----------
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
+  // ---------- RENDER ----------
   return (
     <Navbar bg="dark" variant="dark" expand="lg" sticky="top">
       <Container fluid>
         <Navbar.Brand as={Link} to="/">
-          🏢 Vista CRM
+          🏢 Vista CoreX
         </Navbar.Brand>
         <Navbar.Toggle />
         <Navbar.Collapse>
