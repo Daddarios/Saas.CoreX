@@ -9,6 +9,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { benutzerApi } from '../api/benutzerApi';
 import { useLanguage } from '../hooks/useLanguage';
 import { ApiError, parseApiError } from '../api/errorHandler';
+import { usePermission } from '../hooks/usePermission';
 
 // ============================================================================
 // === CONSTANTS & HELPERS ===
@@ -26,6 +27,7 @@ const imageUrl = (path) => {
 // ============================================================================
 export default function Benutzer() {
   const { t } = useLanguage();
+  const { canManageUsers } = usePermission(); // Admin, SuperAdmin & Manager butonları görür
 
   // ---------- STATE MANAGEMENT ----------
   const [users, setUsers] = useState([]);
@@ -109,7 +111,7 @@ export default function Benutzer() {
         <img
           src={imageUrl(row.bild)}
           alt=""
-          style={{ width: 56, height: 56, borderRadius: '10%', objectFit: 'cover', border: '1px solid #ddd' }}
+          style={{ width: 46, height: 46, borderRadius: '30%', objectFit: 'cover', border: '1px solid #ddd' }}
           onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline'; }}
         />
       ) : (
@@ -128,10 +130,10 @@ export default function Benutzer() {
       label: t('common.actions'),
       render: (row) => (
         <div className="d-flex gap-1 justify-content-center align-items-center">
-          {/* Eye Button: View Details */}
+          {/* Eye Button: Her zaman görünür */}
           <Button
-            className='rounded-2'
-            size="m"
+            className='border-0 bg-transparent'
+            size="xl"
             variant="outline-info"
             onClick={() => {
               setViewItem(row);
@@ -140,22 +142,25 @@ export default function Benutzer() {
           >
             <i className="bi bi-eye" />
           </Button>
-          {/* Edit Button */}
-          <Button
-            className='rounded-2'
-            size="m"
-            variant="outline-primary"
-            onClick={() => {
-              setEditItem(row);
-              setShowModal(true);
-            }}
-          >
-            <i className="bi bi-pencil-square" />
-          </Button>
-          {/* Delete Button */}
-          <Button className='rounded-2' size="m" variant="outline-danger" onClick={() => setDeleteId(row.id)}>
-            <i className="bi bi-trash" />
-          </Button>
+          {/* Edit & Delete: Sadece Admin ve SuperAdmin görür */}
+          {canManageUsers && (
+            <>
+              <Button
+                className='border-0 bg-transparent'
+                size="xl"
+                variant="outline-primary"
+                onClick={() => {
+                  setEditItem(row);
+                  setShowModal(true);
+                }}
+              >
+                <i className="bi bi-pencil-square" />
+              </Button>
+              <Button className='border-0 bg-transparent' size="xl" variant="outline-danger" onClick={() => setDeleteId(row.id)}>
+                <i className="bi bi-trash" />
+              </Button>
+            </>
+          )}
         </div>
       ),
     },
@@ -163,15 +168,17 @@ export default function Benutzer() {
 
   // ---------- RENDER ----------
   return (
+    
     <Container fluid className="py-4">
       {/* Header: Title + New Button */}
-      <div className="d-flex justify-content-between align-items-center mb-3 mt-5">
-        <h2 className="mb-3 text-muted">{t('benutzer.title')}</h2>
-        <Button className="rounded-2"
+      <div className="d-flex justify-content-between align-items-center ">
+        <h2 className="mb-5">Personal</h2>
+        <Button className="rounded-3 bg-outline-primary"
           onClick={() => {
             setEditItem(null);
             setShowModal(true);
           }}
+          style={{ display: canManageUsers ? 'inline-flex' : 'none' }} // Admin, SuperAdmin & Manager görür
         >
           <i className="bi bi-plus-lg me-1" /> {t('benutzer.new')}
         </Button>
@@ -250,10 +257,10 @@ function BenutzerViewModal({ show, item, onHide }) {
               <img
                 src={imageUrl(item.bild)}
                 alt={item.vorname}
-                style={{ width: 80, height: 80, borderRadius: '10%', objectFit: 'cover', border: '2px solid #ddd',boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}
+                style={{ width: 60, height: 60, borderRadius: '10%', objectFit: 'cover', border: '2px solid #ddd',boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}
               />
             ) : (
-              <span className="bi bi-person-circle" style={{ fontSize: 80 }} />
+              <span className="bi bi-person-circle" style={{ fontSize: 60 }} />
             )}
           </div>
 

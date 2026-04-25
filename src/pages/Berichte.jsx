@@ -5,9 +5,11 @@ import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { berichtApi } from '../api/berichtApi';
 import { useLanguage } from '../hooks/useLanguage';
+import { usePermission } from '../hooks/usePermission';
 
 export default function Berichte() {
   const { t } = useLanguage();
+  const { canDelete, canCreate } = usePermission(); // NurLesen için butonlar gizlenir
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -54,6 +56,15 @@ export default function Berichte() {
     } catch { /* ignore */ }
   };
 
+  const handleView = async (row) => {
+    try {
+      const newTab = window.open('', '_blank');
+      const res = await berichtApi.download(row.id);
+      const url = URL.createObjectURL(res.data);
+      newTab.location.href = url;
+    } catch { /* ignore */ }
+  };
+
   const columns = [
     { key: 'titel', label: 'Titel' },
     { key: 'dateiTyp', label: 'Typ' },
@@ -64,12 +75,15 @@ export default function Berichte() {
       label: t('common.actions'),
       render: (row) => (
         <div className="d-flex gap-1">
+          <Button size="sm" variant="outline-info" title="Anzeigen" onClick={() => handleView(row)}>
+            <i className="bi bi-eye" />
+          </Button>
           <Button size="sm" variant="outline-success" title="Herunterladen" onClick={() => handleDownload(row)}>
             <i className="bi bi-download" />
           </Button>
-          <Button size="sm" variant="outline-danger" onClick={() => setDeleteId(row.id)}>
+          {canDelete && <Button size="sm" variant="outline-danger" onClick={() => setDeleteId(row.id)}>
             <i className="bi bi-trash" />
-          </Button>
+          </Button>}
         </div>
       ),
     },
@@ -79,9 +93,9 @@ export default function Berichte() {
     <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Berichte</h2>
-        <Button onClick={() => setShowUpload(true)}>
+        {canCreate && <Button onClick={() => setShowUpload(true)}>
           <i className="bi bi-upload me-1" /> Hochladen
-        </Button>
+        </Button>}
       </div>
 
       {error && <Alert variant="danger">{error}</Alert>}

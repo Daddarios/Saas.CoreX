@@ -13,6 +13,11 @@ const translations = {
   en: {
     common: {
       search: 'Search',
+      copy: 'Copy',
+      copied: 'Copied!',
+      exportCsv: 'CSV',
+      exportPdf: 'PDF',
+      print: 'Print',
       noData: 'No data available',
       previous: 'Previous',
       next: 'Next',
@@ -37,6 +42,7 @@ const translations = {
       logout: 'Log out',
       closeMenu: 'Close menu',
       reset: 'Reset',
+      settings: 'Settings',
     },
     header: {
       welcome: 'Welcome',
@@ -78,6 +84,8 @@ const translations = {
       benutzer: 'Users',
       berichte: 'Reports',
       chat: 'Chat',
+      management: 'Management',
+      system: 'System',
     },
     auth: {
       loginTitle: 'Vista CRM',
@@ -215,6 +223,11 @@ const translations = {
   de: {
     common: {
       search: 'Suchen',
+      copy: 'Kopieren',
+      copied: 'Kopiert!',
+      exportCsv: 'CSV',
+      exportPdf: 'PDF',
+      print: 'Drucken',
       noData: 'Keine Daten vorhanden',
       previous: 'Zuruck',
       next: 'Weiter',
@@ -239,6 +252,7 @@ const translations = {
       logout: 'Abmelden',
       closeMenu: 'Menue schliessen',
       reset: 'Zuruecksetzen',
+      settings: 'Einstellungen',
     },
     header: {
       welcome: 'Willkommen',
@@ -280,6 +294,8 @@ const translations = {
       benutzer: 'Benutzer',
       berichte: 'Berichte',
       chat: 'Chat',
+      management: 'Verwaltung',
+      system: 'System',
     },
     auth: {
       loginTitle: 'Vista CRM',
@@ -417,6 +433,11 @@ const translations = {
   fr: {
     common: {
       search: 'Rechercher',
+      copy: 'Copier',
+      copied: 'Copié !',
+      exportCsv: 'CSV',
+      exportPdf: 'PDF',
+      print: 'Imprimer',
       noData: 'Aucune donnee disponible',
       previous: 'Precedent',
       next: 'Suivant',
@@ -441,6 +462,7 @@ const translations = {
       logout: 'Se deconnecter',
       closeMenu: 'Fermer le menu',
       reset: 'Reinitialiser',
+      settings: 'Parametres',
     },
     header: {
       welcome: 'Bienvenue',
@@ -482,6 +504,8 @@ const translations = {
       benutzer: 'Utilisateurs',
       berichte: 'Rapports',
       chat: 'Chat',
+      management: 'Gestion',
+      system: 'Systeme',
     },
     auth: {
       loginTitle: 'Vista CRM',
@@ -619,6 +643,11 @@ const translations = {
   it: {
     common: {
       search: 'Cerca',
+      copy: 'Copia',
+      copied: 'Copiato!',
+      exportCsv: 'CSV',
+      exportPdf: 'PDF',
+      print: 'Stampa',
       noData: 'Nessun dato disponibile',
       previous: 'Precedente',
       next: 'Successivo',
@@ -643,6 +672,7 @@ const translations = {
       logout: 'Esci',
       closeMenu: 'Chiudi menu',
       reset: 'Ripristina',
+      settings: 'Impostazioni',
     },
     header: {
       welcome: 'Benvenuto',
@@ -684,6 +714,8 @@ const translations = {
       benutzer: 'Utenti',
       berichte: 'Rapporti',
       chat: 'Chat',
+      management: 'Gestione',
+      system: 'Sistema',
     },
     auth: {
       loginTitle: 'Vista CRM',

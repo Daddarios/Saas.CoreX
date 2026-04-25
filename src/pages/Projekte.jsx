@@ -8,12 +8,14 @@ import { projektApi } from '../api/projektApi';
 import { kundeApi } from '../api/kundeApi';
 import { useLanguage } from '../hooks/useLanguage';
 import { parseApiError, ApiError } from '../api/errorHandler';
+import { usePermission } from '../hooks/usePermission';
 
 const statusOptions = ['NichtGestartet', 'InBearbeitung', 'Abgeschlossen', 'Pausiert'];
 const prioritaetOptions = ['Niedrig', 'Mittel', 'Hoch', 'Kritisch'];
 
 export default function Projekte() {
   const { t } = useLanguage();
+  const { canEdit, canDelete, canCreate } = usePermission(); // NurLesen için butonlar gizlenir
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -74,9 +76,9 @@ export default function Projekte() {
       key: 'actions', label: t('common.actions'),
       render: (row) => (
         <>
-          <Button size="sm" variant="outline-primary" className="me-1"
-            onClick={() => { setEditItem(row); setShowModal(true); }}><i className="bi bi-pencil" /></Button>
-          <Button size="sm" variant="outline-danger" onClick={() => setDeleteId(row.id)}><i className="bi bi-trash" /></Button>
+          {canEdit && <Button size="sm" variant="outline-primary" className="me-1"
+            onClick={() => { setEditItem(row); setShowModal(true); }}><i className="bi bi-pencil" /></Button>}
+          {canDelete && <Button size="sm" variant="outline-danger" onClick={() => setDeleteId(row.id)}><i className="bi bi-trash" /></Button>}
         </>
       ),
     },
@@ -86,9 +88,9 @@ export default function Projekte() {
     <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>{t('projekte.title')}</h2>
-        <Button onClick={() => { setEditItem(null); setShowModal(true); }}>
+        {canCreate && <Button onClick={() => { setEditItem(null); setShowModal(true); }}>
           <i className="bi bi-plus-lg me-1" /> {t('projekte.new')}
-        </Button>
+        </Button>}
       </div>
 
       {loading ? (

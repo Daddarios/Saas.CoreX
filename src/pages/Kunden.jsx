@@ -10,6 +10,7 @@ import { kundeApi } from '../api/kundeApi';
 import { ansprechpartnerApi } from '../api/ansprechpartnerApi';
 import { useLanguage } from '../hooks/useLanguage';
 import { ApiError } from '../api/errorHandler';
+import { usePermission } from '../hooks/usePermission';
 
 // ============================================================================
 // === CONSTANTS & HELPERS ===
@@ -26,6 +27,7 @@ const imageUrl = (path) => {
 // ============================================================================
 export default function Kunden() {
   const { t } = useLanguage();
+  const { canEdit, canDelete, canCreate } = usePermission(); // NurLesen için butonlar gizlenir
 
   // ---------- STATE MANAGEMENT ----------
   const [data, setData] = useState([]);
@@ -127,15 +129,15 @@ export default function Kunden() {
             onClick={() => setAnsprechpartnerKunde(row)}>
             <i className="bi bi-person-lines-fill" />
           </Button>
-          {/* Edit Button */}
-          <Button size="sm" variant="outline-primary" className="me-1 rounded-2"
+          {/* Edit Button — NurLesen göremez */}
+          {canEdit && <Button size="sm" variant="outline-primary" className="me-1 rounded-2"
             onClick={() => { setEditItem(row); setShowModal(true); }}>
             <i className="bi bi-pencil" />
-          </Button>
-          {/* Delete Button */}
-          <Button size="sm" variant="outline-danger" className="rounded-2" onClick={() => setDeleteId(row.id)}>
+          </Button>}
+          {/* Delete Button — NurLesen göremez */}
+          {canDelete && <Button size="sm" variant="outline-danger" className="rounded-2" onClick={() => setDeleteId(row.id)}>
             <i className="bi bi-trash" />
-          </Button>
+          </Button>}
         </>
       ),
     },
@@ -147,9 +149,10 @@ export default function Kunden() {
       {/* Header: Title + New Button */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>{t('kunden.title')}</h2>
-        <Button className="rounded-2" onClick={() => { setEditItem(null); setShowModal(true); }}>
+        {/* Yeni Müşteri — NurLesen göremez */}
+        {canCreate && <Button className="rounded-2" onClick={() => { setEditItem(null); setShowModal(true); }}>
           <i className="bi bi-plus-lg me-1" /> {t('kunden.new')}
-        </Button>
+        </Button>}
       </div>
 
       {/* Error Alert */}

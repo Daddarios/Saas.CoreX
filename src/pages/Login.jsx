@@ -57,7 +57,7 @@ export default function Login() {
                   value={passwort}
                   onChange={(e) => setPasswort(e.target.value)}
                   required
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                 />
                 <span
                   className="login-toggle-password"

@@ -114,6 +114,35 @@ body {
 
 .table thead th {
   white-space: nowrap;
+  background-color: #334246 !important;
+}
+
+/* === Vista Table Head: light & dark mod uyumlu === */
+.vista-table-head th {
+  background-color: #5f9ea0 !important;
+  color: #fff !important;
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .vista-table-head th {
+  background-color: #2a4a4c !important;
+  color: #e0f0f0 !important;
+}
+
+/* Tbody dark mod: table-light override */
+[data-theme='dark'] .table tbody tr {
+  background-color: var(--surface) !important;
+  color: var(--app-text) !important;
+}
+
+[data-theme='dark'] .table.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: color-mix(in srgb, var(--surface) 85%, #5f9ea0 15%) !important;
+  color: var(--app-text) !important;
+}
+
+[data-theme='dark'] .table.table-hover > tbody > tr:hover > * {
+  background-color: color-mix(in srgb, var(--surface) 70%, #5f9ea0 30%) !important;
+  color: var(--app-text) !important;
 }
 
 .app-shell {
@@ -198,6 +227,41 @@ body {
 .app-sidebar-title {
   color: var(--vista-cadet) !important;
   font-size: 1.02rem;
+
+/* ── Sidebar Section Label ───────────────────────────────────── */
+.sidebar-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vista-cadet);
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.28s ease, max-height 0.38s ease;
+  max-height: 2rem;
+}
+
+.app-sidebar.collapsed .sidebar-section-label {
+  opacity: 0;
+  max-height: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ── Sidebar Footer Info ─────────────────────────────────────── */
+.sidebar-footer-info {
+  transition: opacity 0.28s ease, width 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  min-width: 0;
+}
+
+.app-sidebar.collapsed .sidebar-footer-info {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
   text-shadow: 0 1px 6px rgba(95, 158, 160, 0.25);
 }
 
@@ -235,6 +299,7 @@ body {
   min-height: 40px;
   border-radius: 0.95rem;
   word-break: break-word;
+  
   line-height: 1.188rem;
   white-space: nowrap;
   padding-top: 0.35rem;
@@ -278,8 +343,8 @@ body {
 
 .sidebar-link-label {
   white-space: nowrap;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 400;
   line-height: 1.188rem;
   transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), width 0.8s cubic-bezier(0.22, 1, 0.36, 1), font-size 0.8s ease;
 }
@@ -901,7 +966,7 @@ body {
 @keyframes dropdownFadeIn {
   from {
     opacity: 0;
-    transform: scale(0.95) translateY(-8px);
+    transform: scale(0.96) translateY(-6px);
   }
   to {
     opacity: 1;
@@ -910,17 +975,18 @@ body {
 }
 
 .dropdown-menu {
-  transform-origin: top center;
+  transform-origin: top right;
   animation: none;
   border: 1px solid var(--border-soft);
   background-color: var(--surface);
   border-radius: 0.65rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   padding: 0.35rem;
+  z-index: 1050 !important;
 }
 
 .dropdown-menu.show {
-  animation: dropdownFadeIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: dropdownFadeIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .dropdown-menu[data-bs-popper] {
@@ -960,6 +1026,76 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* ── Portal Dropdown ─────────────────────────────────────────── */
+@keyframes portalMenuIn {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+
+@keyframes portalMenuOut {
+  from { opacity: 1; transform: translateY(0);     }
+  to   { opacity: 0; transform: translateY(-16px); }
+}
+
+.portal-dropdown-menu {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.65rem;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+  padding: 0.35rem;
+  transform-origin: top right;
+  overflow: hidden;
+  animation: portalMenuIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.portal-dropdown-menu.closing {
+  animation: portalMenuOut 0.22s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.portal-dropdown-header {
+  padding: 0.55rem 0.85rem 0.45rem;
+  border-bottom: none;
+}
+
+.portal-dropdown-divider {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 0.3rem 0;
+}
+
+.portal-dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.42rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--app-text);
+  background: transparent;
+  border: none;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.13s ease;
+}
+
+.portal-dropdown-item:hover {
+  background: var(--surface-2);
+}
+
+.portal-dropdown-item.active {
+  background: var(--vista-cadet-soft);
+  color: var(--vista-cadet);
+  font-weight: 500;
+}
+
+.portal-dropdown-item.text-danger {
+  color: #dc3545 !important;
+}
+
+.portal-dropdown-item.text-danger:hover {
+  background: rgba(220,53,69,0.08);
 }
 
 [data-theme='dark'] .text-secondary {

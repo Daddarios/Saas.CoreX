@@ -29,7 +29,12 @@ function App() {
         <Route path="projekte" element={<Projekte />} />
         <Route path="tickets" element={<Tickets />} />
         <Route path="chat" element={<Chat />} />
-        <Route path="benutzer" element={<Benutzer />} />
+        {/* Sadece SuperAdmin ve Admin erişebilir */}
+        <Route path="benutzer" element={
+          <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'Manager']}>
+            <Benutzer />
+          </ProtectedRoute>
+        } />
         <Route path="berichte" element={<Berichte />} />
       </Route>
     </Routes>

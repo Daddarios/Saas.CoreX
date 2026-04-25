@@ -1,6 +1,19 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/authApi';
+import { benutzerApi } from '../api/benutzerApi';
 import { setAccessToken } from '../api/axiosClient';
+
+// /auth/me bazı backend'lerde bild gibi alanları döndürmez;
+// eksikse /benutzer/{id} endpoint'inden tam profili çekip birleştiririz.
+async function enrichProfile(profile) {
+  if (!profile?.bild && profile?.id) {
+    try {
+      const res = await benutzerApi.getById(profile.id);
+      return { ...profile, ...res.data };
+    } catch { /* sessizce devam et */ }
+  }
+  return profile;
+}
 
 const AuthContext = createContext(null);
 
@@ -9,17 +22,34 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Token + user'ı birlikte set eden yardımcı
-  const login = useCallback((userData) => {
+  const login = useCallback(async (userData) => {
     if (!userData) return;
     const token = userData.accessToken ?? userData.token ?? null;
     if (token) setAccessToken(token);
 
-    // Objeyi token alanlarından temizleyerek sakla
-    const { accessToken: _a, token: _t, ...userInfo } = userData;
-    setUser(userInfo);
-    localStorage.setItem('user', JSON.stringify(userInfo));
-    if (userInfo.mandantId) {
-      localStorage.setItem('mandantId', userInfo.mandantId);
+    // Eğer userData'da profil bilgisi varsa direkt kullan, yoksa /auth/me çek
+    if (userData.email || userData.vorname) {
+      const { accessToken: _a, token: _t, ...rawInfo } = userData;
+      // /auth/me bild gibi alanları döndürmeyebilir; tam profili çekerek zenginleştir
+      const userInfo = await enrichProfile(rawInfo);
+      setUser(userInfo);
+      localStorage.setItem('user', JSON.stringify(userInfo));
+      if (userInfo.mandantId) localStorage.setItem('mandantId', userInfo.mandantId);
+    } else {
+      // Login response sadece token/mesaj içeriyor, profili me endpoint'inden al
+      if (userData.mandantId) localStorage.setItem('mandantId', userData.mandantId);
+      try {
+        const res = await authApi.me();
+        const profile = await enrichProfile(res.data); // bild eksikse /benutzer/{id}'den tamamla
+        setUser(profile);
+        localStorage.setItem('user', JSON.stringify(profile));
+        if (profile.mandantId) localStorage.setItem('mandantId', profile.mandantId);
+      } catch {
+        // me başarısız olursa mevcut veriyi sakla
+        const { accessToken: _a, token: _t, ...userInfo } = userData;
+        setUser(userInfo);
+        localStorage.setItem('user', JSON.stringify(userInfo));
+      }
     }
   }, []);
 

@@ -21,12 +21,14 @@ import { benutzerApi } from '../api/benutzerApi';
 import { useSignalR } from '../hooks/useSignalR';
 import { useLanguage } from '../hooks/useLanguage';
 import { parseApiError, ApiError } from '../api/errorHandler';
+import { usePermission } from '../hooks/usePermission';
 
 const statusOptions = ['Offen', 'InBearbeitung', 'Geloest', 'Geschlossen'];
 const prioritaetOptions = ['Niedrig', 'Mittel', 'Hoch', 'Kritisch'];
 
 export default function Tickets() {
   const { t } = useLanguage();
+  const { canEdit, canDelete, canCreate } = usePermission(); // NurLesen için butonlar gizlenir
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -119,9 +121,9 @@ export default function Tickets() {
         <>
           <Button size="sm" variant="outline-info" className="me-1"
             onClick={() => setShowDetail(row)}><i className="bi bi-eye" /></Button>
-          <Button size="sm" variant="outline-primary" className="me-1"
-            onClick={() => { setEditItem(row); setShowModal(true); }}><i className="bi bi-pencil" /></Button>
-          <Button size="sm" variant="outline-danger" className="me-1" onClick={() => setDeleteId(row.id)}><i className="bi bi-trash" /></Button>
+          {canEdit && <Button size="sm" variant="outline-primary" className="me-1"
+            onClick={() => { setEditItem(row); setShowModal(true); }}><i className="bi bi-pencil" /></Button>}
+          {canDelete && <Button size="sm" variant="outline-danger" className="me-1" onClick={() => setDeleteId(row.id)}><i className="bi bi-trash" /></Button>}
           <select
             className="form-select form-select-sm d-inline-block"
             style={{ width: 'auto' }}
@@ -139,9 +141,9 @@ export default function Tickets() {
     <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>{t('tickets.title')}</h2>
-        <Button onClick={() => { setEditItem(null); setShowModal(true); }}>
+        {canCreate && <Button onClick={() => { setEditItem(null); setShowModal(true); }}>
           <i className="bi bi-plus-lg me-1" /> {t('tickets.new')}
-        </Button>
+        </Button>}
       </div>
 
       {loading ? (

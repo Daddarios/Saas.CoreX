@@ -15,8 +15,11 @@
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
     "flag-icons": "^7.5.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "react": "^19.2.4",
     "react-bootstrap": "^2.10.10",
+    "react-csv": "^2.2.2",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.14.1",
     "recharts": "^3.8.1"

@@ -14,8 +14,18 @@ export const getAccessToken = () => _accessToken;
 // -----------------------------------------------------------------
 // Axios instance configuration
 // -----------------------------------------------------------------
+// API base origin (avatar URL'leri için kullanılır)
+export const API_ORIGIN = 'http://localhost:8080';
+
+// Göreceli ya da tam avatar URL'ini tam URL'e dönüştürür
+export function getAvatarUrl(bild) {
+  if (!bild) return null;
+  if (bild.startsWith('http://') || bild.startsWith('https://') || bild.startsWith('data:')) return bild;
+  return `${API_ORIGIN}${bild.startsWith('/') ? '' : '/'}${bild}`;
+}
+
 const axiosClient = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: `${API_ORIGIN}/api`,
   withCredentials: true, // HTTP-only cookie support (refresh token)
   timeout: 30000, // 30 saniye timeout
 });
@@ -69,7 +79,8 @@ const processQueue = (error, token = null) => {
 };
 
 // Auth endpoint kontrolü (refresh loop'u engellemek için)
-const AUTH_ENDPOINTS = ['/auth/login', '/auth/verify', '/auth/refresh', '/auth/me', '/auth/logout'];
+// Not: /auth/me burada YOK — sayfa yenilemede 401 gelirse refresh denensin
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/verify', '/auth/refresh', '/auth/logout'];
 const isAuthEndpoint = (url) => AUTH_ENDPOINTS.some((endpoint) => url?.includes(endpoint));
 
 // Backend hata mesajı normalizasyonu (nachricht/message/title alanları)
