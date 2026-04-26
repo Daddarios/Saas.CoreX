@@ -22,11 +22,10 @@ export default function ZweiFaktor() {
 
     try {
       const res = await authApi.verifyCode(email, code);
-      login(res.data);
+      await login(res.data);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || t('auth.invalidCode'));
-    } finally {
       setLoading(false);
     }
   };

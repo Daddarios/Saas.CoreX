@@ -6,6 +6,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { berichtApi } from '../api/berichtApi';
 import { useLanguage } from '../hooks/useLanguage';
 import { usePermission } from '../hooks/usePermission';
+import { ApiError } from '../api/errorHandler';
 
 export default function Berichte() {
   const { t } = useLanguage();
@@ -129,7 +130,14 @@ export default function Berichte() {
 }
 
 function UploadModal({ onHide, onSuccess }) {
-  const [entityType, setEntityType] = useState('berichte');
+  const { t } = useLanguage();
+  const [entityType, setEntityType] = useState('kunden');
+  const [kunden, setKunden] = useState([]);
+  const [projekte, setProjekte] = useState([]);
+  const [projekteFull, setProjekteFull] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [ticketsFull, setTicketsFull] = useState([]);
+  const [selectedKundeId, setSelectedKundeId] = useState('');
   const [entityId, setEntityId] = useState('');
   const [titel, setTitel] = useState('');
   const [version, setVersion] = useState('');
@@ -137,16 +145,76 @@ function UploadModal({ onHide, onSuccess }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
+  // Dropdown'ları yükle
+  useEffect(() => {
+    import('../api/kundeApi').then(({ kundeApi }) => {
+      kundeApi.getAll(1, 200).then((res) => {
+        setKunden(res.data?.items || res.data || []);
+      }).catch(() => {});
+    });
+    import('../api/projektApi').then(({ projektApi }) => {
+      projektApi.getAll(1, 200).then((res) => {
+        setProjekteFull(res.data?.items || res.data || []);
+      }).catch(() => {});
+    });
+    import('../api/ticketApi').then(({ ticketApi }) => {
+      ticketApi.getAll(1, 200).then((res) => {
+        setTicketsFull(res.data?.items || res.data || []);
+      }).catch(() => {});
+    });
+  }, []);
+
+  // Müşteri seçildiğinde projeleri ve ticketleri filtrele
+  useEffect(() => {
+    if (selectedKundeId) {
+      setProjekte(projekteFull.filter(p => p.kundeId === selectedKundeId));
+      setTickets(ticketsFull.filter(t => t.kundeId === selectedKundeId));
+    } else {
+      setProjekte([]);
+      setTickets([]);
+    }
+  }, [selectedKundeId, projekteFull, ticketsFull]);
+
+  // Entity type değiştiğinde entityId'yi sıfırla
+  useEffect(() => {
+    setEntityId('');
+    setSelectedKundeId('');
+  }, [entityType]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file || !entityId.trim()) return;
     setError('');
     setUploading(true);
+    
+    // Backend modeline uygun payload
+    const titelValue = titel.trim() || '';
+    const versionValue = version.trim() || '1.0'; // Default version
+    
+    console.log('[Berichte] Uploading file:', {
+      entityType,
+      entityId: entityId.trim(),
+      titel: titelValue,
+      version: versionValue,
+      fileName: file.name
+    });
+    
     try {
-      await berichtApi.upload(entityType, entityId.trim(), file, titel.trim() || undefined, version.trim() || undefined);
+      await berichtApi.upload(
+        entityType, 
+        entityId.trim(), 
+        file, 
+        titelValue || file.name, // Eğer boşsa dosya adını kullan
+        versionValue
+      );
       onSuccess();
     } catch (err) {
-      setError(err.response?.data?.message || 'Upload fehlgeschlagen.');
+      if (err instanceof ApiError) {
+        setError(err.getLocalizedMessage ? err.getLocalizedMessage() : err.message);
+      } else {
+        setError(err.response?.data?.message || 'Upload fehlgeschlagen.');
+      }
+      console.error('[Berichte] Upload error:', err);
     } finally {
       setUploading(false);
     }
@@ -177,22 +245,116 @@ function UploadModal({ onHide, onSuccess }) {
             />
           </div>
           <div className="mb-3">
-            <Form.Label>Kategorie</Form.Label>
+            <Form.Label>Kategorie *</Form.Label>
             <Form.Select value={entityType} onChange={(e) => setEntityType(e.target.value)}>
-              <option value="berichte">Bericht</option>
               <option value="kunden">Kunde</option>
-              <option value="benutzer">Benutzer</option>
+              <option value="projekte">Projekt</option>
+              <option value="tickets">Ticket</option>
             </Form.Select>
           </div>
-          <div className="mb-3">
-            <Form.Label>Entität-ID (GUID) *</Form.Label>
-            <Form.Control
-              required
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              value={entityId}
-              onChange={(e) => setEntityId(e.target.value)}
-            />
-          </div>
+          
+          {/* MÜŞTERİ SEÇİMİ */}
+          {entityType === 'kunden' && (
+            <div className="mb-3">
+              <Form.Label>Kunde auswählen *</Form.Label>
+              <Form.Select 
+                required
+                value={entityId}
+                onChange={(e) => setEntityId(e.target.value)}
+              >
+                <option value="">Bitte auswählen...</option>
+                {kunden.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.unternehmen} — {k.vorname} {k.nachname}
+                  </option>
+                ))}
+              </Form.Select>
+            </div>
+          )}
+
+          {/* PROJE SEÇİMİ */}
+          {entityType === 'projekte' && (
+            <>
+              <div className="mb-3">
+                <Form.Label>Kunde auswählen *</Form.Label>
+                <Form.Select 
+                  required
+                  value={selectedKundeId}
+                  onChange={(e) => setSelectedKundeId(e.target.value)}
+                >
+                  <option value="">Bitte auswählen...</option>
+                  {kunden.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.unternehmen} — {k.vorname} {k.nachname}
+                    </option>
+                  ))}
+                </Form.Select>
+              </div>
+              <div className="mb-3">
+                <Form.Label>Projekt auswählen *</Form.Label>
+                <Form.Select 
+                  required
+                  disabled={!selectedKundeId || projekte.length === 0}
+                  value={entityId}
+                  onChange={(e) => setEntityId(e.target.value)}
+                >
+                  <option value="">
+                    {!selectedKundeId 
+                      ? 'Zuerst Kunde auswählen' 
+                      : projekte.length === 0 
+                        ? 'Keine Projekte verfügbar'
+                        : 'Bitte auswählen...'
+                    }
+                  </option>
+                  {projekte.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </Form.Select>
+              </div>
+            </>
+          )}
+
+          {/* TICKET SEÇİMİ */}
+          {entityType === 'tickets' && (
+            <>
+              <div className="mb-3">
+                <Form.Label>Kunde auswählen *</Form.Label>
+                <Form.Select 
+                  required
+                  value={selectedKundeId}
+                  onChange={(e) => setSelectedKundeId(e.target.value)}
+                >
+                  <option value="">Bitte auswählen...</option>
+                  {kunden.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.unternehmen} — {k.vorname} {k.nachname}
+                    </option>
+                  ))}
+                </Form.Select>
+              </div>
+              <div className="mb-3">
+                <Form.Label>Ticket auswählen *</Form.Label>
+                <Form.Select 
+                  required
+                  disabled={!selectedKundeId || tickets.length === 0}
+                  value={entityId}
+                  onChange={(e) => setEntityId(e.target.value)}
+                >
+                  <option value="">
+                    {!selectedKundeId 
+                      ? 'Zuerst Kunde auswählen' 
+                      : tickets.length === 0 
+                        ? 'Keine Tickets verfügbar'
+                        : 'Bitte auswählen...'
+                    }
+                  </option>
+                  {tickets.map((t) => (
+                    <option key={t.id} value={t.id}>{t.titel}</option>
+                  ))}
+                </Form.Select>
+              </div>
+            </>
+          )}
           <div className="mb-3">
             <Form.Label>Datei *</Form.Label>
             <Form.Control

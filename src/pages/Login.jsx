@@ -48,6 +48,7 @@ export default function Login() {
                   autoComplete="off"
                 />
               </div>
+
               <div className="login-field-group login-field-password">
                 <small>Passwort</small>
                 <input
@@ -82,7 +83,7 @@ export default function Login() {
 
             {error && (
               <ins className="login-error">
-                {error} <i className="bi bi-exclamation-triangle" style={{ color: '#f14a1c' }} />
+                {error} <i className="bi bi-exclamation-triangle" style={{ color: '#fd0a0a' }} />
               </ins>
             )}
           </div>

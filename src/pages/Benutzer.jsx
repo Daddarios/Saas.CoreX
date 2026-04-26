@@ -70,20 +70,21 @@ export default function Benutzer() {
   const handleSave = async (payload) => {
     setError('');
     try {
+      let response;
       if (editItem) {
-        await benutzerApi.update(editItem.id, payload);
+        response = await benutzerApi.update(editItem.id, payload);
       } else {
-        await benutzerApi.create(payload);
+        response = await benutzerApi.create(payload);
       }
-      setShowModal(false);
-      setEditItem(null);
-      await load();
+      // Response'u return et ki modal içinde kullanabilelim
+      return response;
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.getLocalizedMessage(t));
       } else {
         setError(t('benutzer.saveError'));
       }
+      throw err; // Hatayı yukarı fırlat ki modal handle edebilsin
     }
   };
 
@@ -125,6 +126,7 @@ export default function Benutzer() {
     { key: 'abteilung', label: t('benutzer.abteilung') },
     { key: 'rufNummer', label: t('benutzer.rufNummer') },
     
+    
     {
       key: 'actions',
       label: t('common.actions'),
@@ -165,6 +167,7 @@ export default function Benutzer() {
       ),
     },
   ];
+
 
   // ---------- RENDER ----------
   return (
@@ -324,7 +327,6 @@ function BenutzerModal({ show, initial, onHide, onSave, onRefresh }) {
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
   const [bildFile, setBildFile] = useState(null);
-  const [bildUploading, setBildUploading] = useState(false);
   const [bildError, setBildError] = useState('');
   const fileInputRef = useRef(null);
 
@@ -373,37 +375,9 @@ function BenutzerModal({ show, initial, onHide, onSave, onRefresh }) {
     setBildFile(file);
   };
 
-  const handleBildUpload = async () => {
-    if (!bildFile || !initial?.id) return;
-    setBildUploading(true);
-    setBildError('');
-    try {
-      const res = await benutzerApi.uploadAvatar(initial.id, bildFile);
-      console.log('Avatar upload response:', res.data);
-      
-      const newBild = res.data.avatar || res.data.bild || res.data.path || res.data.url || '';
-      if (newBild) {
-        setForm((f) => ({ ...f, bild: newBild }));
-      }
-      
-      if (onRefresh) await onRefresh();
-      
-      setBildFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setBildError(err.message);
-      } else {
-        setBildError('Avatar yüklenirken hata oluştu');
-      }
-    } finally {
-      setBildUploading(false);
-    }
-  };
-
   const handleBildDelete = async () => {
     if (!initial?.id) return;
+    setBildError('');
     try {
       await benutzerApi.deleteAvatar(initial.id);
       setForm((f) => ({ ...f, bild: '' }));
@@ -417,13 +391,21 @@ function BenutzerModal({ show, initial, onHide, onSave, onRefresh }) {
     }
   };
 
+  const handleBildRemoveSelection = () => {
+    setBildFile(null);
+    setBildError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   // ---------- HANDLERS: FORM SUBMIT ----------
   const submit = async (e) => {
     e.preventDefault();
     setSaveError('');
     setFieldErrors({});
+    setBildError('');
     setSaving(true);
     
+    // Payload hazırla
     const payload = { ...form };
     if (isEdit) {
       delete payload.passwort;
@@ -431,12 +413,47 @@ function BenutzerModal({ show, initial, onHide, onSave, onRefresh }) {
     }
     delete payload.bild;
     
-    const cleaned = Object.fromEntries(
-      Object.entries(payload).map(([k, v]) => [k, v === '' ? null : v]),
-    );
+    // Boş string gönder (NULL değil) - backend zorunlu alanlar için
+    const cleaned = {};
+    Object.entries(payload).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        cleaned[key] = value.trim();
+      } else {
+        cleaned[key] = value ?? '';
+      }
+    });
+    
+    console.log('[Benutzer] Submitting payload:', cleaned);
     
     try {
-      await onSave(cleaned);
+      // 1. Önce kullanıcı bilgilerini kaydet
+      const response = await onSave(cleaned);
+      
+      // 2. Eğer avatar dosyası seçilmişse, şimdi yükle
+      if (bildFile) {
+        const userId = initial?.id || response?.data?.id;
+        
+        if (userId) {
+          try {
+            await benutzerApi.uploadAvatar(userId, bildFile);
+          } catch (avatarErr) {
+            if (avatarErr instanceof ApiError) {
+              setBildError(`Kullanıcı kaydedildi ancak avatar yüklenemedi: ${avatarErr.message}`);
+            } else {
+              setBildError('Kullanıcı kaydedildi ancak avatar yüklenemedi');
+            }
+            setSaving(false);
+            if (onRefresh) await onRefresh();
+            return;
+          }
+        }
+      }
+      
+      // Her şey başarılı
+      if (onRefresh) await onRefresh();
+      onHide();
+      setSaving(false);
+      
     } catch (err) {
       setSaving(false);
       
@@ -444,8 +461,9 @@ function BenutzerModal({ show, initial, onHide, onSave, onRefresh }) {
         if (err.message) {
           setSaveError(err.message);
         }
-        if (Object.keys(err.fieldErrors).length > 0) {
+        if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
           setFieldErrors(err.fieldErrors);
+          console.error('[Benutzer] Field validation errors:', err.fieldErrors);
         }
       } else {
         setSaveError('Speichern fehlgeschlagen');
@@ -594,38 +612,52 @@ function BenutzerModal({ show, initial, onHide, onSave, onRefresh }) {
             {/* === PROFILBILD === */}
             <div className="col-12">
               <Form.Label>Profilbild</Form.Label>
-              {isEdit ? (
-                <div>
-                  {form.bild && (
-                    <div className="mb-2 d-flex align-items-center gap-2">
-                      <img
-                        src={imageUrl(form.bild)}
-                        alt="Avatar"
-                        style={{ width: 56, height: 56, borderRadius: '10%', objectFit: 'cover', border: '1px solid #ddd' }}
-                      />
-                      <Button variant="outline-danger" size="sm" className="rounded-2" onClick={handleBildDelete}>
-                        <i className="bi bi-trash" />
-                      </Button>
-                    </div>
-                  )}
-                  <div className="d-flex gap-2 align-items-center">
-                    <Form.Control
-                      type="file"
-                      accept=".png,.jpg,.jpeg"
-                      ref={fileInputRef}
-                      onChange={handleBildFileSelect}
+              <div>
+                {form.bild && !bildFile && (
+                  <div className="mb-2 d-flex align-items-center gap-2">
+                    <img
+                      src={imageUrl(form.bild)}
+                      alt="Avatar"
+                      style={{ width: 56, height: 56, borderRadius: '10%', objectFit: 'cover', border: '1px solid #ddd' }}
                     />
-                    {bildFile && (
-                      <Button variant="outline-primary" size="sm" className="rounded-2" onClick={handleBildUpload} disabled={bildUploading}>
-                        {bildUploading ? <Spinner animation="border" size="sm" /> : 'Yükle'}
-                      </Button>
-                    )}
+                    <Button variant="outline-danger" size="sm" className="rounded-2" onClick={handleBildDelete}>
+                      <i className="bi bi-trash" />
+                    </Button>
                   </div>
-                  {bildError && <small className="text-danger d-block mt-1">{bildError}</small>}
+                )}
+                <div className="d-flex gap-2 align-items-center">
+                  <Form.Control
+                    type="file"
+                    accept=".png,.jpg,.jpeg"
+                    ref={fileInputRef}
+                    onChange={handleBildFileSelect}
+                  />
+                  {bildFile && (
+                    <Button 
+                      variant="outline-secondary" 
+                      size="sm" 
+                      className="rounded-2" 
+                      onClick={handleBildRemoveSelection}
+                      title="Seçimi kaldır"
+                    >
+                      <i className="bi bi-x-lg" />
+                    </Button>
+                  )}
                 </div>
-              ) : (
-                <small className="text-muted d-block">Profilbild, kullanıcı kaydedildikten sonra yüklenebilir.</small>
-              )}
+                {bildFile && (
+                  <small className="text-success d-block mt-1">
+                    <i className="bi bi-check-circle-fill me-1" />
+                    {bildFile.name} seçildi. Kaydet butonuna bastığınızda yüklenecek.
+                  </small>
+                )}
+                {bildError && <small className="text-danger d-block mt-1">{bildError}</small>}
+                {!initial?.id && !bildFile && (
+                  <small className="text-muted d-block mt-1">
+                    <i className="bi bi-info-circle me-1" />
+                    Avatar seçebilirsiniz. Kaydet butonuna bastığınızda tüm bilgilerle birlikte yüklenecektir.
+                  </small>
+                )}
+              </div>
             </div>
 
             {/* === NOTLAR === */}

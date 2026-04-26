@@ -1,8 +1,14 @@
 import axiosClient from './axiosClient';
 
 export const projektApi = {
-  getAll: (page = 1, size = 20, search = '') =>
-    axiosClient.get('/projekt', { params: { page, size, search } }),
+  getAll: (page = 1, size = 20, search = '', kundeId = null) => {
+    const params = { page, size, search };
+    if (kundeId) params.kundeId = kundeId;
+    return axiosClient.get('/projekt', { params });
+  },
+
+  getByKunde: (kundeId) =>
+    axiosClient.get('/projekt', { params: { kundeId, page: 1, size: 1000 } }),
 
   getById: (id) => axiosClient.get(`/projekt/${id}`),
 
@@ -17,4 +23,10 @@ export const projektApi = {
 
   removeBenutzer: (projektId, benutzerId) =>
     axiosClient.delete(`/projekt/${projektId}/benutzer/${benutzerId}`),
+
+  assignAnsprechpartner: (projektId, ansprechpartnerId) =>
+    axiosClient.post(`/projekt/${projektId}/ansprechpartner`, { ansprechpartnerId }),
+
+  removeAnsprechpartner: (projektId, ansprechpartnerId) =>
+    axiosClient.delete(`/projekt/${projektId}/ansprechpartner/${ansprechpartnerId}`),
 };

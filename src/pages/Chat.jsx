@@ -59,12 +59,24 @@ export default function Chat() {
   }, [nachrichten]);
 
   const sendMessage = async () => {
-    if (!newMsg.trim() || !activeRaum) return;
+    const trimmedMsg = newMsg.trim();
+    if (!trimmedMsg || !activeRaum) return;
+    
+    console.log('[Chat] Sending message:', {
+      raumId: activeRaum.id,
+      inhalt: trimmedMsg,
+      raumName: activeRaum.name
+    });
+    
     try {
-      await invoke('SendMessage', activeRaum.id.toString(), newMsg);
+      await invoke('SendMessage', activeRaum.id.toString(), trimmedMsg);
       setNewMsg('');
     } catch (err) {
-      console.error('Send error:', err);
+      console.error('[Chat] Send error:', err);
+      // Kullanıcıya hata göster
+      if (err.message) {
+        alert(`Mesaj gönderilemedi: ${err.message}`);
+      }
     }
   };
 

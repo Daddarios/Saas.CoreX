@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Container, Button, Modal, Form, Alert } from 'react-bootstrap';
+import { Container, Button, Modal, Form, Alert, Badge, Collapse } from 'react-bootstrap';
 import DataTable from '../components/shared/DataTable';
 import StatusBadge from '../components/shared/StatusBadge';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { projektApi } from '../api/projektApi';
 import { kundeApi } from '../api/kundeApi';
+import { benutzerApi } from '../api/benutzerApi';
+import { ansprechpartnerApi } from '../api/ansprechpartnerApi';
 import { useLanguage } from '../hooks/useLanguage';
 import { parseApiError, ApiError } from '../api/errorHandler';
 import { usePermission } from '../hooks/usePermission';
@@ -42,17 +44,55 @@ export default function Projekte() {
   const handleSave = async (formData) => {
     setError('');
     try {
+      const benutzerIds = formData.benutzerIds || [];
+      const ansprechpartnerIds = formData.ansprechpartnerIds || [];
+      // benutzerIds ve ansprechpartnerIds'i payload'dan çıkar (backend modelde yok)
+      const { benutzerIds: _, ansprechpartnerIds: __, ...projektData } = formData;
+      
+      let projektId;
       if (editItem) {
-        await projektApi.update(editItem.id, formData);
+        await projektApi.update(editItem.id, projektData);
+        projektId = editItem.id;
       } else {
-        await projektApi.create(formData);
+        const res = await projektApi.create(projektData);
+        projektId = res.data?.id || res.data;
+        console.log('[Projekte] Created project with ID:', projektId);
       }
+      
+      // Benutzer atamaları yap
+      if (benutzerIds.length > 0 && projektId) {
+        console.log(`[Projekte] Assigning ${benutzerIds.length} benutzer to project ${projektId}`);
+        for (const benutzerId of benutzerIds) {
+          try {
+            await projektApi.assignBenutzer(projektId, benutzerId);
+          } catch (err) {
+            console.error(`[Projekte] Failed to assign benutzer ${benutzerId}:`, err);
+          }
+        }
+      }
+      
+      // Ansprechpartner atamaları yap
+      if (ansprechpartnerIds.length > 0 && projektId) {
+        console.log(`[Projekte] Assigning ${ansprechpartnerIds.length} ansprechpartner to project ${projektId}`);
+        for (const ansprechpartnerId of ansprechpartnerIds) {
+          try {
+            await projektApi.assignAnsprechpartner(projektId, ansprechpartnerId);
+          } catch (err) {
+            console.error(`[Projekte] Failed to assign ansprechpartner ${ansprechpartnerId}:`, err);
+          }
+        }
+      }
+      
       setShowModal(false);
       setEditItem(null);
       load();
     } catch (err) {
-      const apiErr = parseApiError(err);
-      setError(apiErr.getLocalizedMessage(t));
+      if (err instanceof ApiError) {
+        setError(err.getLocalizedMessage(t));
+      } else {
+        setError(t('projekte.saveError', 'Speichern fehlgeschlagen'));
+      }
+      console.error('[Projekte] Save error:', err);
     }
   };
 
@@ -119,19 +159,70 @@ export default function Projekte() {
 function ProjektModal({ show, onHide, onSave, initial, error }) {
   const { t } = useLanguage();
   const [kunden, setKunden] = useState([]);
+  const [benutzer, setBenutzer] = useState([]);
+  const [filialen, setFilialen] = useState([]);
+  const [ansprechpartner, setAnsprechpartner] = useState([]);
   const [form, setForm] = useState({
     name: '', beschreibung: '', startdatum: '', enddatum: '',
     status: 'NichtGestartet', prioritaet: 'Mittel', abschlussInProzent: 0,
     kundeId: '', istAbgeschlossen: false,
   });
+  const [selectedBenutzerIds, setSelectedBenutzerIds] = useState([]);
+  const [showBenutzerList, setShowBenutzerList] = useState(false);
+  const [selectedAnsprechpartnerIds, setSelectedAnsprechpartnerIds] = useState([]);
+  const [showAnsprechpartnerList, setShowAnsprechpartnerList] = useState(false);
 
   useEffect(() => {
     if (show) {
       kundeApi.getAll(1, 200).then((res) => {
         setKunden(res.data?.items || res.data || []);
-      }).catch(() => {});
+        console.log('[Projekte] Loaded kunden:', res.data?.items?.length || res.data?.length || 0);
+      }).catch((err) => {
+        console.error('[Projekte] Failed to load kunden:', err);
+      });
+      
+      benutzerApi.getAll(1, 200).then((res) => {
+        const benutzerList = res.data?.items || res.data || [];
+        setBenutzer(benutzerList);
+        console.log('[Projekte] Loaded benutzer:', benutzerList.length, benutzerList);
+      }).catch((err) => {
+        console.error('[Projekte] Failed to load benutzer:', err);
+        setBenutzer([]);
+      });
     }
   }, [show]);
+
+  // Müşteri seçildiğinde ilgili bilgileri yükle
+  useEffect(() => {
+    if (form.kundeId) {
+      // Filiale'leri yükle
+      import('../api/filialeApi').then(({ filialeApi }) => {
+        filialeApi.getByKunde(form.kundeId)
+          .then((res) => {
+            setFilialen(res.data || []);
+            console.log(`[Projekte] Loaded ${res.data?.length || 0} filialen for kunde ${form.kundeId}`);
+          })
+          .catch((err) => {
+            console.error('[Projekte] Failed to load filialen:', err);
+            setFilialen([]);
+          });
+      });
+
+      // Ansprechpartner'leri yükle
+      ansprechpartnerApi.getByKunde(form.kundeId)
+        .then((res) => {
+          setAnsprechpartner(res.data || []);
+          console.log(`[Projekte] Loaded ${res.data?.length || 0} ansprechpartner for kunde ${form.kundeId}`);
+        })
+        .catch((err) => {
+          console.error('[Projekte] Failed to load ansprechpartner:', err);
+          setAnsprechpartner([]);
+        });
+    } else {
+      setFilialen([]);
+      setAnsprechpartner([]);
+    }
+  }, [form.kundeId]);
 
   useEffect(() => {
     if (initial) {
@@ -146,18 +237,83 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
         kundeId: initial.kundeId || '',
         istAbgeschlossen: initial.istAbgeschlossen ?? false,
       });
+      // Mevcut benutzer'ları yükle
+      setSelectedBenutzerIds(initial.benutzer?.map(b => b.id) || []);
+      // Mevcut ansprechpartner'ları yükle
+      setSelectedAnsprechpartnerIds(initial.ansprechpartner?.map(ap => ap.id) || []);
     } else {
       setForm({ name: '', beschreibung: '', startdatum: '', enddatum: '',
         status: 'NichtGestartet', prioritaet: 'Mittel', abschlussInProzent: 0, kundeId: '', istAbgeschlossen: false });
+      setSelectedBenutzerIds([]);
+      setSelectedAnsprechpartnerIds([]);
     }
+    // Toggle listelerini kapat
+    setShowBenutzerList(false);
+    setShowAnsprechpartnerList(false);
   }, [initial, show]);
+
+  const handleKundeChange = (kundeId) => {
+    setForm({ ...form, kundeId });
+    // Müşteri değiştiğinde önceki müşteriye ait seçili ansprechpartner'leri temizle
+    setSelectedAnsprechpartnerIds([]);
+    // Ansprechpartner listesini kapat
+    setShowAnsprechpartnerList(false);
+  };
+
+  const handleBenutzerToggle = (benutzerId) => {
+    setSelectedBenutzerIds(prev => {
+      if (prev.includes(benutzerId)) {
+        return prev.filter(id => id !== benutzerId);
+      } else {
+        return [...prev, benutzerId];
+      }
+    });
+  };
+
+  const handleAnsprechpartnerToggle = (ansprechpartnerId) => {
+    setSelectedAnsprechpartnerIds(prev => {
+      if (prev.includes(ansprechpartnerId)) {
+        return prev.filter(id => id !== ansprechpartnerId);
+      } else {
+        return [...prev, ansprechpartnerId];
+      }
+    });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Boş string’leri null’a çevir
-    const payload = Object.fromEntries(
-      Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]),
-    );
+    
+    // En az 1 benutzer kontrolu
+    if (selectedBenutzerIds.length === 0) {
+      alert(t('projekte.minOneUser', 'Bitte mindestens einen Benutzer auswählen!'));
+      return;
+    }
+    
+    // En az 1 ansprechpartner kontrolu (sadece müşteri seçildiyse)
+    if (form.kundeId && selectedAnsprechpartnerIds.length === 0) {
+      alert(t('projekte.minOneAnsprechpartner', 'Bitte mindestens einen Ansprechpartner auswählen!'));
+      return;
+    }
+    
+    // Boş string gönder (NULL değil) - backend zorunlu alanlar için
+    const payload = {};
+    Object.entries(form).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        payload[key] = value.trim();
+      } else {
+        payload[key] = value;
+      }
+    });
+    
+    // Benutzer ID'lerini ekle
+    payload.benutzerIds = selectedBenutzerIds;
+    
+    // Ansprechpartner ID'lerini ekle
+    if (selectedAnsprechpartnerIds.length > 0) {
+      payload.ansprechpartnerIds = selectedAnsprechpartnerIds;
+    }
+    
+    console.log('[Projekte] Submitting payload:', payload);
     onSave(payload);
   };
 
@@ -170,25 +326,123 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
           <div className="row g-3">
+            {/* === KUNDE VE ANSPRECHPARTNER YAN YANA === */}
             <div className="col-md-6">
-              <Form.Label>{t('kunden.title')} *</Form.Label>
+              <Form.Label><i className="bi bi-people-fill me-1"></i>{t('kunden.title')} *</Form.Label>
               <Form.Select required value={form.kundeId}
-                onChange={(e) => setForm({ ...form, kundeId: e.target.value })}>
-                <option value="">{t('common.select')}...</option>
+                onChange={(e) => handleKundeChange(e.target.value)}>
+                <option value="" disabled>{t('--')}</option>
                 {kunden.map((k) => (
                   <option key={k.id} value={k.id}>
-                    {k.unternehmen} — {k.vorname} {k.nachname}
+                    {k.unternehmen} 
                   </option>
                 ))}
               </Form.Select>
             </div>
-            <div className="col-md-6">
-              <Form.Label>{t('projekte.name')} *</Form.Label>
+
+            {/* === ANSPRECHPARTNER TOGGLE (SAĞ TARAF) === */}
+            {form.kundeId && (
+              <div className="col-md-6">
+                <Form.Label><i className="bi bi-person-lines-fill me-1"></i>{t('projekte.ansprechpartner', 'Ansprechpartner')} *</Form.Label>
+                <Button
+                  variant="outline-success"
+                  className="w-100 d-flex justify-content-between align-items-center"
+                  onClick={() => setShowAnsprechpartnerList(!showAnsprechpartnerList)}
+                  aria-controls="ansprechpartner-collapse"
+                  aria-expanded={showAnsprechpartnerList}
+                >
+                  <span className="d-flex align-items-center gap-2">
+                    <Badge bg={selectedAnsprechpartnerIds.length === 0 ? 'danger' : 'success'}>
+                      {selectedAnsprechpartnerIds.length} {t('common.selected', 'ausgewählt')}
+                    </Badge>
+                  </span>
+                  <i className={`bi bi-chevron-${showAnsprechpartnerList ? 'up' : 'down'}`} />
+                </Button>
+              </div>
+            )}
+
+            {/* === LOGO + BİLGİLER (AYRI SATIR) === */}
+            {form.kundeId && (() => {
+              const selectedKunde = kunden.find(k => k.id === form.kundeId);
+              return (
+                <div className="col-12">
+                  <div className="d-flex align-items-center gap-3 p-3  rounded">
+                    {selectedKunde?.logo ? (
+                      <img 
+                        src={`http://localhost:8080${selectedKunde.logo}`} 
+                        alt={selectedKunde.unternehmen}
+                        style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '8px' }}
+                      />
+                    ) : (
+                      <div className="d-flex align-items-center justify-content-center bg-white border rounded" 
+                           style={{ width: '60px', height: '60px' }}>
+                        <i className="bi bi-building text-muted fs-4" />
+                      </div>
+                    )}
+                    <div>
+                      <strong className="d-block">{selectedKunde?.unternehmen}</strong>
+                      <Form.Text className="text-muted small">
+                        {filialen.length} Filiale(n)
+                        {ansprechpartner.length > 0 && `, ${ansprechpartner.length} Ansprechpartner`}
+                      </Form.Text>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* === ANSPRECHPARTNER LISTE (COLLAPSED) === */}
+            {form.kundeId && (
+              <div className="col-12">
+                <Collapse in={showAnsprechpartnerList}>
+                  <div id="ansprechpartner-collapse">
+                    <div className="border rounded p-3 bg-light" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      {ansprechpartner.length === 0 ? (
+                        <div className="text-muted small text-center py-2">
+                          <i className="bi bi-exclamation-circle me-2" />
+                          Keine Ansprechpartner verfügbar
+                        </div>
+                      ) : (
+                        ansprechpartner.map((ap) => (
+                          <Form.Check
+                            key={ap.id}
+                            type="checkbox"
+                            id={`ansprechpartner-${ap.id}`}
+                            label={
+                              <span>
+                                <strong>{ap.name}</strong>
+                                {ap.abteilung && <span className="text-muted ms-2">({ap.abteilung})</span>}
+                                {ap.telefon && <span className="text-muted small d-block"><i className="bi bi-telephone" /> {ap.telefon}</span>}
+                                {ap.email && <span className="text-muted small d-block"><i className="bi bi-envelope" /> {ap.email}</span>}
+                              </span>
+                            }
+                            checked={selectedAnsprechpartnerIds.includes(ap.id)}
+                            onChange={() => handleAnsprechpartnerToggle(ap.id)}
+                            className="mb-2 pb-2 border-bottom"
+                          />
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </Collapse>
+                
+                {selectedAnsprechpartnerIds.length === 0 && (
+                  <Form.Text className="text-danger small d-block mt-2">
+                    <i className="bi bi-exclamation-triangle-fill me-1" />
+                    {t('projekte.minOneAnsprechpartner', 'Mindestens ein Ansprechpartner muss zugewiesen werden!')}
+                  </Form.Text>
+                )}
+              </div>
+            )}
+
+            {/* === NAME ALANI === */}
+            <div className="col-12">
+              <Form.Label><i className='bi bi-clipboard-data me-1'></i>{t('projekte.name')} *</Form.Label>
               <Form.Control required value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
             <div className="col-12">
-              <Form.Label>{t('projekte.description')}</Form.Label>
+              <Form.Label><i className="bi bi-card-text me-1"></i>{t('projekte.description')}</Form.Label>
               <Form.Control as="textarea" rows={2} value={form.beschreibung}
                 onChange={(e) => setForm({ ...form, beschreibung: e.target.value })} />
             </div>
@@ -217,11 +471,41 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
                 onChange={(e) => setForm({ ...form, enddatum: e.target.value })} />
             </div>
             <div className="col-md-4">
-              <Form.Label>{t('projekte.completion')}</Form.Label>
-              <Form.Control type="number" min={0} max={100} value={form.abschlussInProzent}
-                onChange={(e) => setForm({ ...form, abschlussInProzent: +e.target.value })} />
+              <Form.Label className="d-flex justify-content-between align-items-center">
+                <span>{t('projekte.completion')}</span>
+                <Badge bg={
+                  form.abschlussInProzent < 30 ? 'danger' : 
+                  form.abschlussInProzent < 70 ? 'warning' : 
+                  'success'
+                }>
+                  {form.abschlussInProzent}%
+                </Badge>
+              </Form.Label>
+              <Form.Range 
+                min={0} 
+                max={100} 
+                step={5}
+                value={form.abschlussInProzent}
+                onChange={(e) => setForm({ ...form, abschlussInProzent: +e.target.value })}
+                className="mb-2"
+              />
+              <div className="progress w-50" style={{ height: '7px' }}>
+                <div 
+                  className={`progress-bar ${
+                    form.abschlussInProzent < 30 ? 'bg-danger' : 
+                    form.abschlussInProzent < 70 ? 'bg-warning' : 
+                    'bg-success'
+                  }`} 
+                  role="progressbar" 
+                  style={{ width: `${form.abschlussInProzent}%` }}
+                
+                  aria-valuenow={form.abschlussInProzent} 
+                  aria-valuemin={0} 
+                  aria-valuemax={100}
+                />
+              </div>
             </div>
-            <div className="col-md-4 d-flex align-items-end">
+            {/*<div className="col-md-4 d-flex align-items-end">
               <Form.Check
                 type="checkbox"
                 id="ist-abgeschlossen"
@@ -229,7 +513,66 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
                 checked={form.istAbgeschlossen}
                 onChange={(e) => setForm({ ...form, istAbgeschlossen: e.target.checked })}
               />
+            </div> */}
+
+            {/* === BENUTZER AUSWAHL (ZORUNLU - TOGGLE LIST) === */}
+            <div className="col-12 mt-4">
+              <Button
+                variant="outline-primary"
+                className="w-100 d-flex justify-content-between align-items-center mb-2"
+                onClick={() => setShowBenutzerList(!showBenutzerList)}
+                aria-controls="benutzer-collapse"
+                aria-expanded={showBenutzerList}
+              >
+                <span className="d-flex align-items-center gap-2">
+                  <i className="bi bi-people-fill" />
+                  {t('projekte.assignedUsers', 'Zugewiesene Benutzer')} *
+                  <Badge bg={selectedBenutzerIds.length === 0 ? 'danger' : 'success'}>
+                    {selectedBenutzerIds.length} {t('common.selected', 'ausgewählt')}
+                  </Badge>
+                </span>
+                <i className={`bi bi-chevron-${showBenutzerList ? 'up' : 'down'}`} />
+              </Button>
+              
+              <Collapse in={showBenutzerList}>
+                <div id="benutzer-collapse">
+                  <div className="border rounded p-3 bg-light" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {benutzer.length === 0 ? (
+                      <div className="text-muted small text-center py-2">
+                        <i className="bi bi-exclamation-circle me-2" />
+                        {t('benutzer.noUsers', 'Keine Benutzer verfügbar')}
+                      </div>
+                    ) : (
+                      benutzer.map((b) => (
+                        <Form.Check
+                          key={b.id}
+                          type="checkbox"
+                          id={`benutzer-${b.id}`}
+                          label={
+                            <span>
+                              <strong>{b.vorname} {b.nachname}</strong>
+                              {b.abteilung && <span className="text-muted ms-2">({b.abteilung})</span>}
+                              {b.email && <span className="text-muted small d-block">{b.email}</span>}
+                            </span>
+                          }
+                          checked={selectedBenutzerIds.includes(b.id)}
+                          onChange={() => handleBenutzerToggle(b.id)}
+                          className="mb-2 pb-2 border-bottom"
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              </Collapse>
+              
+              {selectedBenutzerIds.length === 0 && (
+                <Form.Text className="text-danger small d-block mt-2">
+                  <i className="bi bi-exclamation-triangle-fill me-1" />
+                  {t('projekte.minOneUser', 'Mindestens ein Benutzer muss zugewiesen werden!')}
+                </Form.Text>
+              )}
             </div>
+
           </div>
         </Modal.Body>
         <Modal.Footer>

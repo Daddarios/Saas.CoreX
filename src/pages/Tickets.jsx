@@ -70,10 +70,18 @@ export default function Tickets() {
 
   const handleSave = async (formData) => {
     setError('');
-    // Boş string'leri null'a çevir — backend validation hatasını önler
-    const payload = Object.fromEntries(
-      Object.entries(formData).map(([k, v]) => [k, v === '' ? null : v]),
-    );
+    // Boş string gönder (NULL değil) - backend zorunlu alanlar için
+    const payload = {};
+    Object.entries(formData).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        payload[key] = value.trim();
+      } else {
+        payload[key] = value;
+      }
+    });
+    
+    console.log('[Tickets] Submitting payload:', payload);
+    
     try {
       if (editItem) {
         await ticketApi.update(editItem.id, payload);
@@ -84,8 +92,12 @@ export default function Tickets() {
       setEditItem(null);
       load();
     } catch (err) {
-      const apiErr = parseApiError(err);
-      setError(apiErr.getLocalizedMessage(t));
+      if (err instanceof ApiError) {
+        setError(err.getLocalizedMessage(t));
+      } else {
+        setError(t('tickets.saveError', 'Speichern fehlgeschlagen'));
+      }
+      console.error('[Tickets] Save error:', err);
     }
   };
 
@@ -186,26 +198,59 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
   const { t } = useLanguage();
   const [kunden, setKunden] = useState([]);
   const [projekte, setProjekte] = useState([]);
+  const [projekteFull, setProjekteFull] = useState([]); // Tüm projeler
+  const [ansprechpartner, setAnsprechpartner] = useState([]);
   const [benutzer, setBenutzer] = useState([]);
   const [form, setForm] = useState({
     titel: '', beschreibung: '', status: 'Offen', prioritaet: 'Mittel',
     kategorie: '', faelligkeitsdatum: '', kundeId: '', projektId: '', zugewiesenAnId: '',
   });
 
-  // Dropdown listelerini yükle
+  // Dropdown listelerini yükle (Modal açıldığında)
   useEffect(() => {
     if (show) {
       kundeApi.getAll(1, 200).then((res) => {
         setKunden(res.data?.items || res.data || []);
       }).catch(() => {});
       projektApi.getAll(1, 200).then((res) => {
-        setProjekte(res.data?.items || res.data || []);
+        const projects = res.data?.items || res.data || [];
+        setProjekteFull(projects);
+        // İlk yüklemede müşteri seçiliyse filtrele
+        if (initial?.kundeId) {
+          setProjekte(projects.filter(p => p.kundeId === initial.kundeId));
+        } else {
+          setProjekte([]);
+        }
       }).catch(() => {});
       benutzerApi.getAll(1, 200).then((res) => {
         setBenutzer(res.data?.items || res.data || []);
       }).catch(() => {});
     }
-  }, [show]);
+  }, [show, initial]);
+
+  // Müşteri seçildiğinde ilgili projeleri ve ansprechpartner'leri yükle
+  useEffect(() => {
+    if (form.kundeId) {
+      // Müşteriye ait projeleri filtrele
+      const filteredProjects = projekteFull.filter(p => p.kundeId === form.kundeId);
+      setProjekte(filteredProjects);
+      console.log(`[Tickets] Filtered ${filteredProjects.length} projects for kunde ${form.kundeId}`);
+
+      // Müşteriye ait ansprechpartner'leri yükle
+      ansprechpartnerApi.getByKunde(form.kundeId)
+        .then((res) => {
+          setAnsprechpartner(res.data || []);
+          console.log(`[Tickets] Loaded ${res.data?.length || 0} ansprechpartner for kunde ${form.kundeId}`);
+        })
+        .catch((err) => {
+          console.error('[Tickets] Failed to load ansprechpartner:', err);
+          setAnsprechpartner([]);
+        });
+    } else {
+      setProjekte([]);
+      setAnsprechpartner([]);
+    }
+  }, [form.kundeId, projekteFull]);
 
   useEffect(() => {
     if (initial) {
@@ -223,10 +268,39 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
     } else {
       setForm({ titel: '', beschreibung: '', status: 'Offen', prioritaet: 'Mittel',
         kategorie: '', faelligkeitsdatum: '', kundeId: '', projektId: '', zugewiesenAnId: '' });
+      setProjekte([]);
+      setAnsprechpartner([]);
     }
   }, [initial, show]);
 
-  const handleSubmit = (e) => { e.preventDefault(); onSave(form); };
+  // Müşteri değiştiğinde proje ve ansprechpartner seçimlerini temizle
+  const handleKundeChange = (kundeId) => {
+    setForm({ 
+      ...form, 
+      kundeId, 
+      projektId: '', // Proje seçimini sıfırla
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Backend modeline uygun payload hazırla
+    const payload = {
+      titel: form.titel.trim(),
+      beschreibung: form.beschreibung.trim(),
+      status: form.status || 'Offen',
+      prioritaet: form.prioritaet || 'Mittel',
+      kategorie: form.kategorie.trim(),
+      faelligkeitsdatum: form.faelligkeitsdatum || null,
+      kundeId: form.kundeId,
+      projektId: form.projektId || null,
+      zugewiesenAnId: form.zugewiesenAnId || null,
+    };
+    
+    console.log('[Tickets] Submitting payload:', payload);
+    onSave(payload);
+  };
 
   return (
     <Modal show={show} onHide={onHide} size="lg">
@@ -240,7 +314,7 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
             <div className="col-md-6">
               <Form.Label>{t('kunden.title')} *</Form.Label>
               <Form.Select required value={form.kundeId}
-                onChange={(e) => setForm({ ...form, kundeId: e.target.value })}>
+                onChange={(e) => handleKundeChange(e.target.value)}>
                 <option value="">{t('common.select')}...</option>
                 {kunden.map((k) => (
                   <option key={k.id} value={k.id}>
@@ -248,6 +322,12 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
                   </option>
                 ))}
               </Form.Select>
+              {form.kundeId && (
+                <Form.Text className="text-muted small d-block mt-1">
+                  {projekte.length} Projekt(e) verfügbar
+                  {ansprechpartner.length > 0 && `, ${ansprechpartner.length} Ansprechpartner`}
+                </Form.Text>
+              )}
             </div>
             <div className="col-md-6">
               <Form.Label>{t('common.title')} *</Form.Label>
@@ -275,8 +355,11 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
             </div>
             <div className="col-md-4">
               <Form.Label>{t('common.category')}</Form.Label>
-              <Form.Control value={form.kategorie}
-                onChange={(e) => setForm({ ...form, kategorie: e.target.value })} />
+              <Form.Control 
+                value={form.kategorie}
+                placeholder="z.B. Support, Bug, Feature"
+                onChange={(e) => setForm({ ...form, kategorie: e.target.value })} 
+              />
             </div>
             <div className="col-md-6">
               <Form.Label>{t('tickets.dueDate')}</Form.Label>
@@ -285,9 +368,18 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
             </div>
             <div className="col-md-6">
               <Form.Label>Projekt</Form.Label>
-              <Form.Select value={form.projektId}
+              <Form.Select 
+                value={form.projektId}
+                disabled={!form.kundeId || projekte.length === 0}
                 onChange={(e) => setForm({ ...form, projektId: e.target.value })}>
-                <option value="">{t('common.select')}...</option>
+                <option value="">
+                  {!form.kundeId 
+                    ? 'Zuerst Kunde auswählen' 
+                    : projekte.length === 0 
+                      ? 'Keine Projekte verfügbar'
+                      : t('common.select') + '...'
+                  }
+                </option>
                 {projekte.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -303,6 +395,26 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
                 ))}
               </Form.Select>
             </div>
+            
+            {/* Ansprechpartner Info (Sadece görüntüleme için) */}
+            {form.kundeId && ansprechpartner.length > 0 && (
+              <div className="col-12">
+                <Form.Label className="d-flex align-items-center gap-2">
+                  <i className="bi bi-person-lines-fill" />
+                  Ansprechpartner des Kunden
+                </Form.Label>
+                <div className="border rounded p-2 bg-light">
+                  {ansprechpartner.map((ap) => (
+                    <div key={ap.id} className="small mb-1">
+                      <strong>{ap.name}</strong>
+                      {ap.abteilung && <span className="text-muted"> — {ap.abteilung}</span>}
+                      {ap.telefon && <span className="ms-2"><i className="bi bi-telephone" /> {ap.telefon}</span>}
+                      {ap.email && <span className="ms-2"><i className="bi bi-envelope" /> {ap.email}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </Modal.Body>
         <Modal.Footer>

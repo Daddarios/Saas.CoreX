@@ -1,15 +1,42 @@
 import axios from 'axios';
 
 // -----------------------------------------------------------------
-// Access token management (httpOnly cookie + memory-based token)
+// Access token management (localStorage + memory-based token)
 // -----------------------------------------------------------------
 let _accessToken = null;
 
-export const setAccessToken = (token) => {
-  _accessToken = token ?? null;
+// Uygulama ilk yüklendiğinde localStorage'dan token'ı yükle
+const initializeToken = () => {
+  const storedToken = localStorage.getItem('accessToken');
+  if (storedToken) {
+    _accessToken = storedToken;
+  }
 };
 
-export const getAccessToken = () => _accessToken;
+// İlk yükleme
+initializeToken();
+
+export const setAccessToken = (token) => {
+  _accessToken = token ?? null;
+  
+  // Token'ı localStorage'a da kaydet (sayfa yenilemede kaybetmemek için)
+  if (token) {
+    localStorage.setItem('accessToken', token);
+  } else {
+    localStorage.removeItem('accessToken');
+  }
+};
+
+export const getAccessToken = () => {
+  // Memory'de yoksa localStorage'dan yükle
+  if (!_accessToken) {
+    const storedToken = localStorage.getItem('accessToken');
+    if (storedToken) {
+      _accessToken = storedToken;
+    }
+  }
+  return _accessToken;
+};
 
 // -----------------------------------------------------------------
 // Axios instance configuration
@@ -36,9 +63,14 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(
   (config) => {
     // 1️⃣ Authorization header ekle (eğer token varsa)
+    // Not: Backend cookie-based auth kullanıyorsa token olmayabilir - bu normal!
     const token = getAccessToken();
+    
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
+      console.log(`[axios] Request to ${config.url} WITH token`);
+    } else {
+      console.log(`[axios] Request to ${config.url} WITHOUT token (cookie-based)`);
     }
 
     // 2️⃣ Mandant ID ekle (multi-tenancy için)
@@ -80,8 +112,11 @@ const processQueue = (error, token = null) => {
 
 // Auth endpoint kontrolü (refresh loop'u engellemek için)
 // Not: /auth/me burada YOK — sayfa yenilemede 401 gelirse refresh denensin
+// ANCAK: /auth/me login olmamış kullanıcıda 401 verir, bu durumda refresh denemeden reject et
 const AUTH_ENDPOINTS = ['/auth/login', '/auth/verify', '/auth/refresh', '/auth/logout'];
+const NO_RETRY_ENDPOINTS = ['/auth/me']; // Bu endpoint'ler için retry YAPMA (user henüz authenticated değil)
 const isAuthEndpoint = (url) => AUTH_ENDPOINTS.some((endpoint) => url?.includes(endpoint));
+const isNoRetryEndpoint = (url) => NO_RETRY_ENDPOINTS.some((endpoint) => url?.includes(endpoint));
 
 // Backend hata mesajı normalizasyonu (nachricht/message/title alanları)
 const normalizeError = (error) => {
@@ -128,13 +163,22 @@ axiosClient.interceptors.response.use(
 
     const originalRequest = error.config;
 
-    // 401 değilse veya auth endpoint'iyse hemen reject et
-    if (error.response?.status !== 401 || originalRequest._retry || isAuthEndpoint(originalRequest.url)) {
+    // 401 değilse veya auth endpoint'iyse veya no-retry endpoint'iyse hemen reject et
+    if (
+      error.response?.status !== 401 || 
+      originalRequest._retry || 
+      isAuthEndpoint(originalRequest.url) ||
+      isNoRetryEndpoint(originalRequest.url)
+    ) {
+      console.log(`[axios] Response error ${error.response?.status} for ${originalRequest.url}, no retry`);
       return Promise.reject(error);
     }
 
+    console.log(`[axios] 401 error for ${originalRequest.url}, attempting token refresh...`);
+
     // Eğer token refresh zaten devam ediyorsa, bu isteği kuyruğa ekle
     if (isRefreshing) {
+      console.log('[axios] Refresh already in progress, queuing request...');
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });
       })
@@ -152,15 +196,18 @@ axiosClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
+      console.log('[axios] Calling /auth/refresh...');
       // /auth/refresh endpoint'ini çağır (httpOnly cookie ile)
       const refreshResponse = await axiosClient.post('/auth/refresh');
       const newToken = refreshResponse.data?.accessToken ?? refreshResponse.data?.token ?? null;
 
       if (newToken) {
+        console.log('[axios] Refresh successful WITH token - saving to localStorage');
         setAccessToken(newToken);
         processQueue(null, newToken);
         originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
       } else {
+        console.log('[axios] Refresh successful WITHOUT token - using cookie-based auth');
         // Token body'de yoksa cookie'den okunacak, Authorization header'ı kaldır
         processQueue(null, null);
         delete originalRequest.headers['Authorization'];
@@ -169,16 +216,24 @@ axiosClient.interceptors.response.use(
       isRefreshing = false;
       return axiosClient(originalRequest);
     } catch (refreshError) {
+      console.error('[axios] Refresh failed:', refreshError.response?.status, refreshError.response?.data);
       // Refresh başarısız — kullanıcıyı logout et
       processQueue(refreshError, null);
       isRefreshing = false;
       setAccessToken(null);
       localStorage.removeItem('user');
       localStorage.removeItem('mandantId');
+      localStorage.removeItem('accessToken');
 
-      // Login sayfasına yönlendir
+      // Login sayfasına yönlendir (ama zaten oradaysak yönlendirme!)
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        const currentPath = window.location.pathname;
+        if (currentPath !== '/login' && currentPath !== '/verify') {
+          console.log('[axios] Redirecting to /login');
+          window.location.href = '/login';
+        } else {
+          console.log('[axios] Already on auth page, skipping redirect');
+        }
       }
 
       return Promise.reject(refreshError);

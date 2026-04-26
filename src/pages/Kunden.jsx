@@ -2,12 +2,14 @@
 // === IMPORTS ===
 // ============================================================================
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Container, Button, Modal, Form, Alert, ListGroup, Spinner } from 'react-bootstrap';
+import { Container, Button, Modal, Form, Alert, ListGroup, Spinner, Badge } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import DataTable from '../components/shared/DataTable';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { kundeApi } from '../api/kundeApi';
 import { ansprechpartnerApi } from '../api/ansprechpartnerApi';
+import { projektApi } from '../api/projektApi';
 import { useLanguage } from '../hooks/useLanguage';
 import { ApiError } from '../api/errorHandler';
 import { usePermission } from '../hooks/usePermission';
@@ -40,6 +42,7 @@ export default function Kunden() {
   const [deleteId, setDeleteId] = useState(null);
   const [error, setError] = useState('');
   const [ansprechpartnerKunde, setAnsprechpartnerKunde] = useState(null);
+  const [projekteKunde, setProjekteKunde] = useState(null);
   const size = 20;
 
   // ---------- EFFECTS & CALLBACKS ----------
@@ -66,20 +69,21 @@ export default function Kunden() {
   const handleSave = async (formData) => {
     setError('');
     try {
+      let response;
       if (editItem) {
-        await kundeApi.update(editItem.id, formData);
+        response = await kundeApi.update(editItem.id, formData);
       } else {
-        await kundeApi.create(formData);
+        response = await kundeApi.create(formData);
       }
-      setShowModal(false);
-      setEditItem(null);
-      await load();
+      // Response'u return et ki modal içinde kullanabilelim
+      return response;
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.getLocalizedMessage(t));
       } else {
         setError(t('kunden.saveError'));
       }
+      throw err; // Hatayı yukarı fırlat ki modal handle edebilsin
     }
   };
 
@@ -128,6 +132,12 @@ export default function Kunden() {
             title="Ansprechpartner"
             onClick={() => setAnsprechpartnerKunde(row)}>
             <i className="bi bi-person-lines-fill" />
+          </Button>
+          {/* Projekte Button */}
+          <Button size="sm" variant="outline-success" className="me-1 rounded-2"
+            title="Projekte"
+            onClick={() => setProjekteKunde(row)}>
+            <i className="bi bi-folder" />
           </Button>
           {/* Edit Button — NurLesen göremez */}
           {canEdit && <Button size="sm" variant="outline-primary" className="me-1 rounded-2"
@@ -200,6 +210,14 @@ export default function Kunden() {
           onHide={() => setAnsprechpartnerKunde(null)}
         />
       )}
+
+      {/* === PROJEKTE MODAL === */}
+      {projekteKunde && (
+        <ProjekteModal
+          kunde={projekteKunde}
+          onHide={() => setProjekteKunde(null)}
+        />
+      )}
     </Container>
   );
 }
@@ -218,7 +236,6 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [logoFile, setLogoFile] = useState(null);
-  const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState('');
   const fileInputRef = useRef(null);
 
@@ -267,32 +284,9 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
     setLogoFile(file);
   };
 
-  const handleLogoUpload = async () => {
-    if (!logoFile || !initial?.id) return;
-    setLogoUploading(true);
-    setLogoError('');
-    try {
-      const res = await kundeApi.uploadLogo(initial.id, logoFile);
-      const newLogo = res.data.logo || res.data.path || res.data.url || '';
-      if (newLogo) {
-        setForm((f) => ({ ...f, logo: newLogo }));
-      }
-      if (onRefresh) await onRefresh();
-      setLogoFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setLogoError(err.message);
-      } else {
-        setLogoError('Logo yüklenirken hata oluştu');
-      }
-    } finally {
-      setLogoUploading(false);
-    }
-  };
-
   const handleLogoDelete = async () => {
     if (!initial?.id) return;
+    setLogoError('');
     try {
       await kundeApi.deleteLogo(initial.id);
       setForm((f) => ({ ...f, logo: '' }));
@@ -306,26 +300,88 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
     }
   };
 
+  const handleLogoRemoveSelection = () => {
+    setLogoFile(null);
+    setLogoError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   // ---------- HANDLERS: FORM SUBMIT ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setFieldErrors({});
+    setLogoError('');
     
+    // Logo'yu payload'dan çıkar ve diğer alanları hazırla
     const { logo: _logo, ...rest } = form;
-    const payload = Object.fromEntries(
-      Object.entries(rest).map(([k, v]) => [k, v === '' ? null : v]),
-    );
+    
+    // Payload oluştur: Tüm string alanları boş string olarak gönder (NULL değil!)
+    const payload = {};
+    
+    Object.entries(rest).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        // Başındaki/sonundaki boşlukları temizle
+        const trimmed = value.trim();
+        // Boş bile olsa string olarak gönder (backend zorunlu alanlar için "" bekliyor)
+        payload[key] = trimmed;  // "" veya "değer"
+      } else {
+        // String olmayan alanlar (örn: number, boolean)
+        payload[key] = value ?? '';
+      }
+    });
+    
+    console.log('[Kunden] Submitting payload:', payload);
     
     try {
-      await onSave(payload);
+      // 1. Önce müşteri bilgilerini kaydet (create veya update)
+      const response = await onSave(payload);
+      
+      // 2. Eğer logo dosyası seçilmişse, şimdi yükle
+      if (logoFile) {
+        // Müşteri ID'sini al (düzenleme modunda initial'dan, yeni kayıtta response'dan)
+        const customerId = initial?.id || response?.data?.id;
+        
+        if (customerId) {
+          try {
+            await kundeApi.uploadLogo(customerId, logoFile);
+          } catch (logoErr) {
+            // Logo yükleme hatası - ama müşteri kaydedildi
+            if (logoErr instanceof ApiError) {
+              setLogoError(`Müşteri kaydedildi ancak logo yüklenemedi: ${logoErr.message}`);
+            } else {
+              setLogoError('Müşteri kaydedildi ancak logo yüklenemedi');
+            }
+            setSaving(false);
+            // Refresh yap ve modal'ı açık tut ki kullanıcı tekrar deneyebilsin
+            if (onRefresh) await onRefresh();
+            return;
+          }
+        }
+      }
+      
+      // Her şey başarılı - listeyi yenile ve modal'ı kapat
+      if (onRefresh) await onRefresh();
+      onHide();
+      setSaving(false);
+      
     } catch (err) {
       setSaving(false);
       if (err instanceof ApiError) {
-        if (Object.keys(err.fieldErrors).length > 0) {
+        // Backend'den gelen alan bazlı hatalar
+        if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
           setFieldErrors(err.fieldErrors);
+          console.error('[Kunden] Field validation errors:', err.fieldErrors);
         }
+        // Genel hata mesajı
+        if (err.message) {
+          console.error('[Kunden] Save error:', err.message);
+        }
+      } else {
+        console.error('[Kunden] Unexpected error:', err);
       }
+      // Error parent component'e de bildirilecek
+      throw err;
     }
   };
 
@@ -383,9 +439,8 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
 
             {/* Vorname */}
             <div className="col-md-6">
-              <Form.Label>{t('kunden.firstName')} *</Form.Label>
+              <Form.Label>{t('kunden.firstName')}</Form.Label>
               <Form.Control 
-                required 
                 isInvalid={!!fieldErrors.vorname}
                 value={form.vorname}
                 onChange={(e) => setForm({ ...form, vorname: e.target.value })} 
@@ -399,9 +454,8 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
 
             {/* Nachname */}
             <div className="col-md-6">
-              <Form.Label>{t('kunden.lastName')} *</Form.Label>
+              <Form.Label>{t('kunden.lastName')}</Form.Label>
               <Form.Control 
-                required 
                 isInvalid={!!fieldErrors.nachname}
                 value={form.nachname}
                 onChange={(e) => setForm({ ...form, nachname: e.target.value })} 
@@ -476,38 +530,61 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
             {/* === LOGO === */}
             <div className="col-12">
               <Form.Label>Logo</Form.Label>
-              {initial?.id ? (
-                <div>
-                  {form.logo && (
-                    <div className="mb-2 d-flex align-items-center gap-2">
-                      <img
-                        src={imageUrl(form.logo)}
-                        alt="Logo"
-                        style={{ maxHeight: 56, maxWidth: 112, objectFit: 'contain', border: '1px solid #ddd', borderRadius: 4 }}
-                      />
-                      <Button variant="outline-danger" size="sm" className="rounded-2" onClick={handleLogoDelete}>
-                        <i className="bi bi-trash" />
-                      </Button>
-                    </div>
-                  )}
-                  <div className="d-flex gap-2 align-items-center">
-                    <Form.Control
-                      type="file"
-                      accept=".png,.jpg,.jpeg"
-                      ref={fileInputRef}
-                      onChange={handleLogoFileSelect}
+              <div>
+                {/* Mevcut Logo Gösterimi (Düzenleme Modu) */}
+                {form.logo && !logoFile && (
+                  <div className="mb-2 d-flex align-items-center gap-2">
+                    <img
+                      src={imageUrl(form.logo)}
+                      alt="Logo"
+                      style={{ maxHeight: 56, maxWidth: 112, objectFit: 'contain', border: '1px solid #ddd', borderRadius: 4 }}
                     />
-                    {logoFile && (
-                      <Button variant="outline-primary" size="sm" className="rounded-2" onClick={handleLogoUpload} disabled={logoUploading}>
-                        {logoUploading ? <Spinner animation="border" size="sm" /> : 'Yükle'}
-                      </Button>
-                    )}
+                    <Button variant="outline-danger" size="sm" className="rounded-2" onClick={handleLogoDelete}>
+                      <i className="bi bi-trash" />
+                    </Button>
                   </div>
-                  {logoError && <small className="text-danger d-block mt-1">{logoError}</small>}
+                )}
+                
+                {/* Dosya Seçimi */}
+                <div className="d-flex gap-2 align-items-center">
+                  <Form.Control
+                    type="file"
+                    accept=".png,.jpg,.jpeg"
+                    ref={fileInputRef}
+                    onChange={handleLogoFileSelect}
+                  />
+                  {logoFile && (
+                    <Button 
+                      variant="outline-secondary" 
+                      size="sm" 
+                      className="rounded-2" 
+                      onClick={handleLogoRemoveSelection}
+                      title="Seçimi kaldır"
+                    >
+                      <i className="bi bi-x-lg" />
+                    </Button>
+                  )}
                 </div>
-              ) : (
-                <small className="text-muted d-block">Logo, müşteri kaydedildikten sonra yüklenebilir.</small>
-              )}
+                
+                {/* Logo Seçildi Mesajı */}
+                {logoFile && (
+                  <small className="text-success d-block mt-1">
+                    <i className="bi bi-check-circle-fill me-1" />
+                    {logoFile.name} seçildi. Kaydet butonuna bastığınızda yüklenecek.
+                  </small>
+                )}
+                
+                {/* Hata Mesajı */}
+                {logoError && <small className="text-danger d-block mt-1">{logoError}</small>}
+                
+                {/* Bilgilendirme */}
+                {!initial?.id && !logoFile && (
+                  <small className="text-muted d-block mt-1">
+                    <i className="bi bi-info-circle me-1" />
+                    Logo seçebilirsiniz. Kaydet butonuna bastığınızda tüm bilgilerle birlikte yüklenecektir.
+                  </small>
+                )}
+              </div>
             </div>
 
             {/* === NOTLAR === */}
@@ -559,10 +636,11 @@ function AnsprechpartnerModal({ kunde, onHide }) {
 
   // ---------- STATE MANAGEMENT ----------
   const [list, setList] = useState([]);
+  const [filialen, setFilialen] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: '', telefon: '', email: '', abteilung: '' });
+  const [form, setForm] = useState({ name: '', telefon: '', email: '', abteilung: '', filialeId: '' });
   const [error, setError] = useState('');
 
   // ---------- EFFECTS & CALLBACKS ----------
@@ -575,12 +653,25 @@ function AnsprechpartnerModal({ kunde, onHide }) {
     setLoading(false);
   }, [kunde.id]);
 
-  useEffect(() => { load(); }, [load]);
+  const loadFilialen = useCallback(async () => {
+    try {
+      const { filialeApi } = await import('../api/filialeApi');
+      const res = await filialeApi.getByKunde(kunde.id);
+      setFilialen(res.data || []);
+    } catch (err) {
+      console.error('[Ansprechpartner] Filialen load error:', err);
+    }
+  }, [kunde.id]);
+
+  useEffect(() => {
+    load();
+    loadFilialen();
+  }, [load, loadFilialen]);
 
   // ---------- HANDLERS ----------
   const openNew = () => {
     setEditItem(null);
-    setForm({ name: '', telefon: '', email: '', abteilung: '' });
+    setForm({ name: '', telefon: '', email: '', abteilung: '', filialeId: '' });
     setError('');
     setShowForm(true);
   };
@@ -591,7 +682,8 @@ function AnsprechpartnerModal({ kunde, onHide }) {
       name: item.name || '',
       telefon: item.telefon || '',
       email: item.email || '',
-      abteilung: item.abteilung || ''
+      abteilung: item.abteilung || '',
+      filialeId: item.filialeId || ''
     });
     setError('');
     setShowForm(true);
@@ -601,7 +693,17 @@ function AnsprechpartnerModal({ kunde, onHide }) {
     e.preventDefault();
     setError('');
     try {
-      const payload = { ...form, kundeId: kunde.id };
+      // Backend modeline uygun payload
+      const payload = {
+        name: form.name.trim(),
+        telefon: form.telefon.trim(),
+        email: form.email.trim(),
+        abteilung: form.abteilung.trim(),
+        filialeId: form.filialeId || null,
+        kundeId: kunde.id
+      };
+      console.log('[Ansprechpartner] Saving:', payload);
+      
       if (editItem) {
         await ansprechpartnerApi.update(editItem.id, payload);
       } else {
@@ -610,6 +712,7 @@ function AnsprechpartnerModal({ kunde, onHide }) {
       setShowForm(false);
       load();
     } catch (err) {
+      console.error('[Ansprechpartner] Save error:', err);
       setError(err.response?.data?.message || t('common.saveError', 'Fehler beim Speichern'));
     }
   };
@@ -652,6 +755,13 @@ function AnsprechpartnerModal({ kunde, onHide }) {
                       <div>
                         <strong>{item.name}</strong>
                         {item.abteilung && <span className="ms-2 text-muted small">{item.abteilung}</span>}
+                        {item.filiale && (
+                          <span className="ms-2">
+                            <Badge bg="secondary" className="fw-normal small">
+                              <i className="bi bi-building me-1" />{item.filiale.name}
+                            </Badge>
+                          </span>
+                        )}
                         <div className="small text-muted">
                           {item.telefon && <span className="me-3"><i className="bi bi-telephone me-1" />{item.telefon}</span>}
                           {item.email && <span><i className="bi bi-envelope me-1" />{item.email}</span>}
@@ -695,6 +805,23 @@ function AnsprechpartnerModal({ kunde, onHide }) {
                       <Form.Control type="email" value={form.email}
                         onChange={(e) => setForm({ ...form, email: e.target.value })} />
                     </div>
+                    <div className="col-12">
+                      <Form.Label>Filiale</Form.Label>
+                      <Form.Select 
+                        value={form.filialeId}
+                        onChange={(e) => setForm({ ...form, filialeId: e.target.value })}
+                      >
+                        <option value="">{t('common.select', 'Auswählen')}...</option>
+                        {filialen.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.name} {f.adresse && `— ${f.adresse}`}
+                          </option>
+                        ))}
+                      </Form.Select>
+                      <Form.Text className="text-muted small">
+                        Optional: Ordnen Sie diesen Ansprechpartner einer bestimmten Filiale zu
+                      </Form.Text>
+                    </div>
                   </div>
                   <div className="d-flex gap-2 mt-3">
                     <Button type="submit" variant="primary" className="rounded-2">{t('common.save')}</Button>
@@ -706,6 +833,197 @@ function AnsprechpartnerModal({ kunde, onHide }) {
           </>
         )}
       </Modal.Body>
+    </Modal>
+  );
+}
+
+// ============================================================================
+// === MODAL: PROJEKTE LIST ===
+// ============================================================================
+function ProjekteModal({ kunde, onHide }) {
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+
+  // ---------- STATE MANAGEMENT ----------
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // ---------- EFFECTS & CALLBACKS ----------
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      console.log('[ProjekteModal] Loading projects for Kunde ID:', kunde.id);
+      const res = await projektApi.getByKunde(kunde.id);
+      console.log('[ProjekteModal] API Response:', res.data);
+      
+      // Backend kundeId filtresi desteklemiyorsa, frontend'te filtrele
+      let projects = res.data?.items || res.data || [];
+      
+      // Eğer backend filtreleme yapmadıysa, manuel filtrele
+      const filteredProjects = projects.filter(p => p.kundeId === kunde.id);
+      
+      console.log('[ProjekteModal] Total projects:', projects.length);
+      console.log('[ProjekteModal] Filtered projects for kunde:', filteredProjects.length);
+      
+      setList(filteredProjects);
+    } catch (err) {
+      console.error('[ProjekteModal] Load error:', err);
+    }
+    setLoading(false);
+  }, [kunde.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // ---------- STATUS BADGE HELPER ----------
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'NichtGestartet': return 'secondary';
+      case 'InBearbeitung': return 'primary';
+      case 'Abgeschlossen': return 'success';
+      case 'Pausiert': return 'warning';
+      default: return 'secondary';
+    }
+  };
+
+  const getPrioritaetColor = (prioritaet) => {
+    switch (prioritaet) {
+      case 'Niedrig': return 'info';
+      case 'Mittel': return 'primary';
+      case 'Hoch': return 'warning';
+      case 'Kritisch': return 'danger';
+      default: return 'secondary';
+    }
+  };
+
+  // ---------- RENDER ----------
+  return (
+    <Modal show onHide={onHide} size="lg">
+      <Modal.Header closeButton>
+        <Modal.Title className="d-flex align-items-center mb-2 mt-2 w-100 ">
+          {/* Sol: Projects yazısı */}
+          <span className="me-auto"><i className="bi bi-folder2-open me-2"></i>{t('projekte.projekteFor')}</span>
+          
+          {/* Orta: Logo + Unternehmen */}
+          <div className="d-flex align-items-center gap-2 position-absolute start-50 translate-middle-x">
+            {kunde.logo ? (
+              <img
+                src={imageUrl(kunde.logo)}
+                alt="Logo"
+                style={{ maxHeight: 32, maxWidth: 64, objectFit: 'contain', border: '1px solid #ddd', borderRadius: 4 }}  
+              />
+            ) : (
+              <i className="bi bi-folder" />
+            )}
+            <span>{kunde.unternehmen}</span>
+          </div>
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {loading ? (
+          <div className="text-center py-3"><Spinner size="sm" /></div>
+        ) : (
+          <>
+            {list.length === 0 ? (
+              <div className="text-center py-3 text-muted">
+                <i className="bi bi-folder-x fs-1 d-block mb-2" />
+                {t('projekte.noProjects')}
+              </div>
+            ) : (
+              <ListGroup>
+                {list.map((item) => (
+                  <ListGroup.Item key={item.id} className="d-flex justify-content-between align-items-start">
+                    <div className="flex-grow-1">
+                      <div className="d-flex align-items-center gap-2 mb-1">
+                        <strong className="fs-6">{item.name}</strong>
+                        <Badge bg={getStatusColor(item.status)} className="fw-normal small">
+                          {item.status}
+                        </Badge>
+                        <Badge bg={getPrioritaetColor(item.prioritaet)} className="fw-normal small">
+                          {item.prioritaet}
+                        </Badge>
+                      </div>
+                      {item.beschreibung && (
+                        <p className="mb-1 text-muted small">{item.beschreibung}</p>
+                      )}
+                      
+                      {/* Atanan Kullanıcılar (Yetkililer) */}
+                      {item.benutzer && item.benutzer.length > 0 && (
+                        <div className="mb-2">
+                          <small className="text-muted me-2">
+                            <i className="bi bi-people-fill me-1" />
+                            {t('projekte.assignedUsers', 'Yetkililer')}:
+                          </small>
+                          {item.benutzer.map((user) => (
+                            <Badge 
+                              key={user.id} 
+                              bg="info" 
+                              className="me-1 fw-normal"
+                              style={{ fontSize: '0.75rem' }}
+                            >
+                              <i className="bi bi-person-fill me-1" />
+                              {user.vorname} {user.nachname}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="small text-muted">
+                        {item.startdatum && (
+                          <span className="me-3">
+                            <i className="bi bi-calendar-event me-1" />
+                            {item.startdatum.slice(0, 10)}
+                          </span>
+                        )}
+                        {item.enddatum && (
+                          <span className="me-3">
+                            <i className="bi bi-calendar-check me-1" />
+                            {item.enddatum.slice(0, 10)}
+                          </span>
+                        )}
+                        {item.abschlussInProzent != null && (
+                          <span>
+                            <i className="bi bi-speedometer2 me-1" />
+                            {item.abschlussInProzent}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="d-flex flex-column align-items-end gap-2">
+                      {item.istAbgeschlossen && (
+                        <Badge bg="success">
+                          <i className="bi bi-check-circle-fill me-1" />
+                          Abgeschlossen
+                        </Badge>
+                      )}
+                      {/* Projeye Git Butonu */}
+                      <Button 
+                        size="sm" 
+                        variant="outline-primary" 
+                        className="rounded-2"
+                        onClick={() => {
+                          onHide();
+                          navigate('/projekte', { state: { selectedProjectId: item.id } });
+                        }}
+                        title="Projeye Git"
+                      >
+                        <i className="bi bi-arrow-right me-1" />
+                        {t('projekte.goToProject', 'Projeye Git')}
+                      </Button>
+                    </div>
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+            )}
+          </>
+        )}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" className="rounded-2" onClick={onHide}>
+          {t('common.close', 'Schließen')}
+        </Button>
+      </Modal.Footer>
     </Modal>
   );
 }
