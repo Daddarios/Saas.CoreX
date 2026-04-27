@@ -42,7 +42,10 @@ export const getAccessToken = () => {
 // Axios instance configuration
 // -----------------------------------------------------------------
 // API base origin (avatar URL'leri için kullanılır)
-export const API_ORIGIN = 'http://localhost:8080';
+// Dinamik olarak belirlenir: environment variable varsa onu kullan,
+// yoksa mevcut host'un IP'sini kullan (başka cihazlardan erişim için)
+export const API_ORIGIN = import.meta.env.VITE_API_URL || 
+  `http://${window.location.hostname}:8080`;
 
 // Göreceli ya da tam avatar URL'ini tam URL'e dönüştürür
 export function getAvatarUrl(bild) {

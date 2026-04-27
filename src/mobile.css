@@ -1,0 +1,633 @@
+/* ============================================================================
+   MOBILE TABLE OPTIMIZATIONS - Professional UX/UI Standards
+   ============================================================================ */
+
+/* DataTable Wrapper - Horizontal Scroll on Mobile */
+.datatable-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+  border-radius: 0.75rem;
+}
+
+/* Custom Scrollbar Styling */
+.datatable-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.datatable-wrapper::-webkit-scrollbar-track {
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+
+.datatable-wrapper::-webkit-scrollbar-thumb {
+  background: var(--border-soft);
+  border-radius: 4px;
+}
+
+.datatable-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--vista-cadet);
+}
+
+/* ============================================================================
+   TABLET & MOBILE BREAKPOINT (max-width: 768px)
+   ============================================================================ */
+@media (max-width: 768px) {
+  /* DataTable Toolbar - Stack vertically */
+  .datatable-toolbar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .datatable-search {
+    max-width: 100% !important;
+  }
+
+  /* Touch-friendly button sizes (minimum 44x44px for iOS) */
+  .btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    min-height: 44px;
+  }
+
+  /* Table cell padding adjustments */
+  .table > :not(caption) > * > * {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  /* Pagination - Compact and touch-friendly */
+  .datatable-pagination {
+    gap: 0.25rem;
+    margin-top: 1rem;
+  }
+
+  .datatable-pagination .page-item {
+    margin: 0 2px;
+  }
+
+  .datatable-pagination .page-link {
+    padding: 0.5rem 0.75rem;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Container padding reduction */
+  .container,
+  .container-fluid {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  /* Card spacing optimization */
+  .card {
+    margin-bottom: 1rem;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  /* Modal mobile optimization */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .modal-footer {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Form controls - iOS touch target minimum (44px) */
+  .form-control,
+  .form-select,
+  .btn {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  textarea.form-control {
+    min-height: 88px; /* 2x touch target */
+  }
+
+  /* Button groups wrap on mobile */
+  .btn-group {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  /* Action buttons in tables */
+  .table .btn-group > .btn {
+    margin-bottom: 0.25rem;
+    margin-right: 0.25rem;
+  }
+
+  /* Page header adjustments */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+
+  .page-header .btn {
+    width: 100%;
+  }
+
+  /* Alert spacing */
+  .alert {
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+
+  /* Badge sizing */
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+  }
+}
+
+/* ============================================================================
+   SMALL MOBILE BREAKPOINT (max-width: 576px)
+   ============================================================================ */
+@media (max-width: 576px) {
+  /* Even more compact pagination */
+  .datatable-pagination .page-link {
+    padding: 0.4rem 0.6rem;
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 0.875rem;
+  }
+
+  /* Hide verbose table columns */
+  .table .d-none-xs,
+  .table .hide-xs {
+    display: none !important;
+  }
+
+  /* Stack form rows */
+  .row > .col,
+  .row > [class*="col-"] {
+    margin-bottom: 0.75rem;
+  }
+
+  .row > .col:last-child,
+  .row > [class*="col-"]:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Modal optimizations - Keep centered, add scroll */
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 1rem);
+    overflow-y: auto;
+  }
+
+  .modal-body {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+  }
+
+  /* Typography adjustments */
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  h4 { font-size: 1.1rem; }
+  h5 { font-size: 1rem; }
+
+  /* Reduce button text */
+  .btn .d-none-xs-inline {
+    display: none !important;
+  }
+
+  /* Compact input groups */
+  .input-group {
+    flex-wrap: nowrap;
+  }
+
+  .input-group-text {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* ============================================================================
+   LANDSCAPE ORIENTATION OPTIMIZATIONS
+   ============================================================================ */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Limit table height in landscape */
+  .datatable-wrapper {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  /* Scrollable modals */
+  .modal-dialog {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
+
+/* ============================================================================
+   TOUCH-FRIENDLY INTERACTIVE ELEMENTS
+   ============================================================================ */
+
+/* Action buttons with minimum touch target */
+.table-action-btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0.4rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .table-action-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Remove text selection and tap highlight on interactive elements */
+.table-action-btn,
+.pagination .page-link,
+.btn,
+.dropdown-toggle {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Loading spinner sizing */
+@media (max-width: 768px) {
+  .spinner-border-sm {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-width: 0.2em;
+  }
+}
+
+/* ============================================================================
+   DROPDOWN & MENU OPTIMIZATIONS
+   ============================================================================ */
+@media (max-width: 768px) {
+  /* Dropdown menus full width on mobile */
+  .dropdown-menu {
+    min-width: 200px;
+    max-width: 100%;
+  }
+
+  .dropdown-item {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Dropdown toggle sizing */
+  .dropdown-toggle {
+    min-height: 44px;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY & PERFORMANCE
+   ============================================================================ */
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .table-action-btn,
+  .pagination .page-link,
+  .btn {
+    transition: none;
+  }
+
+  .datatable-wrapper {
+    scroll-behavior: auto;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .table {
+    border: 2px solid currentColor;
+  }
+
+  .table td,
+  .table th {
+    border: 1px solid currentColor;
+  }
+}
+
+/* ============================================================================
+   MOBILE-SPECIFIC UTILITIES
+   ============================================================================ */
+
+/* Hide desktop-only elements on mobile */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  .desktop-only {
+    display: block !important;
+  }
+}
+
+/* Mobile spacing utilities */
+@media (max-width: 768px) {
+  .mt-mobile-1 { margin-top: 0.25rem !important; }
+  .mt-mobile-2 { margin-top: 0.5rem !important; }
+  .mt-mobile-3 { margin-top: 1rem !important; }
+  .mt-mobile-4 { margin-top: 1.5rem !important; }
+  
+  .mb-mobile-1 { margin-bottom: 0.25rem !important; }
+  .mb-mobile-2 { margin-bottom: 0.5rem !important; }
+  .mb-mobile-3 { margin-bottom: 1rem !important; }
+  .mb-mobile-4 { margin-bottom: 1.5rem !important; }
+  
+  .px-mobile-2 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+  .px-mobile-3 { padding-left: 1rem !important; padding-right: 1rem !important; }
+}
+
+/* ============================================================================
+   THEME SETTINGS PANEL - Mobile Optimization
+   ============================================================================ */
+
+/* Tablet & Mobile (max-width: 768px) */
+@media (max-width: 768px) {
+  /* Settings offcanvas width adjustment */
+  .theme-settings-offcanvas {
+    --bs-offcanvas-width: min(100vw, 400px);
+  }
+
+  /* Settings header */
+  .theme-settings-header {
+    flex-direction:column;
+    gap: 0.75rem !important;
+    padding: 1rem !important;
+  }
+
+  .theme-settings-header > div {
+    width: 100%;
+    
+  }
+
+  /* Reset button - Compact on mobile */
+  .settings-reset-btn {
+    width: auto;
+    align-self: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    border-radius: 5px;
+    border: 0.5px solid var(--border-soft);
+    box-shadow: 0 1px 7px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Settings body spacing */
+  .theme-settings-body {
+    padding: 1rem !important;
+  }
+
+  /* Settings section card */
+  .settings-section-card {
+    padding: 1rem !important;
+  }
+
+  .settings-section-head {
+    padding: 0 !important;
+    margin-bottom: 1rem;
+  }
+
+  .settings-section-body {
+    padding: 0 !important;
+  }
+
+  /* Settings visual grid - 2 columns on mobile */
+  .settings-visual-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  /* Visual option buttons - Touch friendly */
+  .settings-visual-option {
+    min-height: 100px;
+    padding: 0.75rem;
+  }
+
+  /* Mini preview sizing */
+  .settings-mini-preview {
+    width: 100%;
+    height: 50px;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Option title row */
+  .settings-visual-title-row {
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: center;
+  }
+
+  .settings-visual-icon {
+    font-size: 1.1rem;
+  }
+
+  .settings-option-title {
+    font-size: 0.875rem;
+  }
+
+  /* Check icon sizing */
+  .settings-option-check {
+    font-size: 1.1rem;
+  }
+
+  /* Settings section title */
+  .settings-section-title {
+    font-size: 1rem;
+  }
+
+  .settings-section-subtitle {
+    font-size: 0.8rem;
+  }
+
+  /* Inline notes */
+  .settings-inline-note {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+}
+
+/* Small Mobile (max-width: 576px) */
+@media (max-width: 576px) {
+  /* Full width offcanvas */
+  .theme-settings-offcanvas {
+    --bs-offcanvas-width: 100vw;
+  }
+
+  /* Compact header */
+  .theme-settings-header {
+    padding: 0.75rem !important;
+  }
+
+  .offcanvas-title {
+    font-size: 1.1rem;
+  }
+
+  .settings-header-subtitle {
+    font-size: 0.75rem;
+  }
+
+  /* Body spacing */
+  .theme-settings-body {
+    padding: 0.75rem !important;
+  }
+
+  /* Section cards */
+  .settings-section-card {
+    padding: 0.75rem !important;
+  }
+
+  /* Single column grid on very small screens */
+  .settings-visual-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  /* Compact visual options */
+  .settings-visual-option {
+    min-height: 80px;
+    padding: 0.5rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  /* Mini preview - Smaller on single column */
+  .settings-mini-preview {
+    width: 60px;
+    height: 40px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  /* Title row - Horizontal layout */
+  .settings-visual-title-row {
+    flex-direction: row;
+    gap: 0.5rem;
+    text-align: left;
+    flex: 1;
+  }
+
+  .settings-visual-icon {
+    font-size: 1rem;
+  }
+
+  .settings-option-title {
+    font-size: 0.85rem;
+  }
+
+  /* Check icon */
+  .settings-option-check {
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  /* Compact sections */
+  .settings-section-head {
+    margin-bottom: 0.75rem;
+  }
+
+  .settings-section-title {
+    font-size: 0.95rem;
+  }
+
+  .settings-section-subtitle {
+    font-size: 0.75rem;
+  }
+}
+
+/* Landscape mode - Special handling */
+@media (max-width: 768px) and (orientation: landscape) {
+  .theme-settings-offcanvas {
+    --bs-offcanvas-width: 50vw;
+  }
+
+  .theme-settings-body {
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  /* 2 columns even in landscape */
+  .settings-visual-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .settings-visual-option {
+    flex-direction: column;
+  }
+
+  .settings-mini-preview {
+    width: 100%;
+    height: 40px;
+    margin-bottom: 0.5rem;
+  }
+
+  .settings-visual-title-row {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* Touch-friendly interactions */
+@media (max-width: 768px) {
+  .settings-visual-option:active {
+    transform: scale(0.98);
+    background-color: var(--bs-secondary-bg);
+  }
+
+  .settings-reset-btn:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Accessibility - High contrast */
+@media (prefers-contrast: high) {
+  .settings-visual-option {
+    border: 2px solid currentColor;
+  }
+
+  .settings-visual-option.active {
+    border-width: 3px;
+  }
+}

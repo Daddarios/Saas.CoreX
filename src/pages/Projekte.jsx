@@ -11,6 +11,7 @@ import { ansprechpartnerApi } from '../api/ansprechpartnerApi';
 import { useLanguage } from '../hooks/useLanguage';
 import { parseApiError, ApiError } from '../api/errorHandler';
 import { usePermission } from '../hooks/usePermission';
+import { API_ORIGIN } from '../api/axiosClient';
 
 const statusOptions = ['NichtGestartet', 'InBearbeitung', 'Abgeschlossen', 'Pausiert'];
 const prioritaetOptions = ['Niedrig', 'Mittel', 'Hoch', 'Kritisch'];
@@ -369,7 +370,7 @@ function ProjektModal({ show, onHide, onSave, initial, error }) {
                   <div className="d-flex align-items-center gap-3 p-3  rounded">
                     {selectedKunde?.logo ? (
                       <img 
-                        src={`http://localhost:8080${selectedKunde.logo}`} 
+                        src={`${API_ORIGIN}${selectedKunde.logo}`} 
                         alt={selectedKunde.unternehmen}
                         style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '8px' }}
                       />

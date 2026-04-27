@@ -21,10 +21,21 @@ export default function ZweiFaktor() {
     setLoading(true);
 
     try {
+      console.log('[ZweiFaktor] Verifying code...');
       const res = await authApi.verifyCode(email, code);
-      await login(res.data);
+      console.log('[ZweiFaktor] Code verified, logging in user...');
+      
+      // Login fonksiyonunun tamamen bitmesini bekle
+      const userProfile = await login(res.data);
+      console.log('[ZweiFaktor] Login completed, user profile:', userProfile?.email, 'has avatar:', !!userProfile?.bild);
+      
+      // State güncellemesi için kısa bir bekleme
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('[ZweiFaktor] Navigating to dashboard...');
       navigate('/');
     } catch (err) {
+      console.error('[ZweiFaktor] Error during verification:', err);
       setError(err.response?.data?.message || t('auth.invalidCode'));
       setLoading(false);
     }

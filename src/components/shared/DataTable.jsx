@@ -1,7 +1,7 @@
 // ============================================================================
 // === IMPORTS ===
 // ============================================================================
-import { Table, Pagination, Form, InputGroup } from 'react-bootstrap';
+import { Table, Pagination, Form, InputGroup, Dropdown } from 'react-bootstrap';
 import { useState, useRef } from 'react';
 import { CSVLink } from 'react-csv';
 import jsPDF from 'jspdf';
@@ -88,10 +88,10 @@ export default function DataTable({
   return (
     <>
       {/* === TOOLBAR: EXPORT BUTTONS + SEARCH === */}
-      <div className="d-flex align-items-center justify-content-between mb-4 mt-5 gap-2 flex-wrap ">
-        {/* Export Button Group */}
-        <div className="btn-group rounded-1 overflow-hidden" role="group">
-          <button className="btn btn-outline-secondary" onClick={handleCopy} title={t('common.copy')}>
+      <div className="datatable-toolbar d-flex align-items-center justify-content-between mb-3 gap-2">
+        {/* Export Button Group - Desktop */}
+        <div className="d-none d-md-flex btn-group rounded-1 overflow-hidden" role="group">
+          <button className="btn btn-outline-secondary btn-sm" onClick={handleCopy} title={t('common.copy')}>
             {copied
               ? <><i className="bi bi-check2"></i> {t('common.copied')}</>
               : <><i className="bi bi-clipboard"></i> {t('common.copy')}</>
@@ -100,22 +100,55 @@ export default function DataTable({
           <CSVLink
             data={getCsvData()}
             filename="tablo.csv"
-            className="btn btn-outline-secondary text-decoration-none"
+            className="btn btn-outline-secondary btn-sm text-decoration-none"
             title={t('common.exportCsv')}
           >
             <i className="bi bi-filetype-csv"></i> {t('common.exportCsv')}
           </CSVLink>
-          <button className="btn btn-outline-secondary" onClick={handlePDF} title={t('common.exportPdf')}>
+          <button className="btn btn-outline-secondary btn-sm" onClick={handlePDF} title={t('common.exportPdf')}>
             <i className="bi bi-file-earmark-pdf"></i> {t('common.exportPdf')}
           </button>
-          <button className="btn btn-outline-secondary" onClick={handlePrint} title={t('common.print')}>
+          <button className="btn btn-outline-secondary btn-sm" onClick={handlePrint} title={t('common.print')}>
             <i className="bi bi-printer"></i> {t('common.print')}
           </button>
         </div>
 
+        {/* Export Dropdown - Mobile */}
+        <Dropdown className="d-md-none">
+          <Dropdown.Toggle variant="outline-secondary" size="sm" id="export-dropdown">
+            <i className="bi bi-download"></i> Export
+          </Dropdown.Toggle>
+          <Dropdown.Menu>
+            <Dropdown.Item onClick={handleCopy}>
+              <i className="bi bi-clipboard me-2"></i>
+              {copied ? t('common.copied') : t('common.copy')}
+            </Dropdown.Item>
+            <Dropdown.Item onClick={() => csvRef.current?.link.click()}>
+              <i className="bi bi-filetype-csv me-2"></i>
+              {t('common.exportCsv')}
+            </Dropdown.Item>
+            <Dropdown.Item onClick={handlePDF}>
+              <i className="bi bi-file-earmark-pdf me-2"></i>
+              {t('common.exportPdf')}
+            </Dropdown.Item>
+            <Dropdown.Item onClick={handlePrint}>
+              <i className="bi bi-printer me-2"></i>
+              {t('common.print')}
+            </Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
+
+        {/* Hidden CSV Link for mobile dropdown */}
+        <CSVLink
+          ref={csvRef}
+          data={getCsvData()}
+          filename="tablo.csv"
+          className="d-none"
+        />
+
         {/* Search */}
-        <Form onSubmit={handleSearch} className="w-25" style={{ minWidth: '200px' }}>
-          <InputGroup>
+        <Form onSubmit={handleSearch} className="datatable-search flex-grow-1" style={{ maxWidth: '300px' }}>
+          <InputGroup size="sm">
             <Form.Control
               placeholder={searchPlaceholder}
               className="border-end-0"
@@ -129,41 +162,46 @@ export default function DataTable({
         </Form>
       </div>
 
-      {/* === TABLE === */}
-      <Table striped hover responsive className="align-middle shadow-sm rounded overflow-hidden">
-        <thead className="cell-align-middle text-center vista-table-head">
-          <tr>
-            {columns.map((col) => (
-              <th key={col.key}>{col.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="cell-align-middle text-center">
-          {filteredData.length === 0 ? (
+      {/* === TABLE WITH HORIZONTAL SCROLL WRAPPER === */}
+      <div className="table-responsive datatable-wrapper">
+        <Table striped hover className="align-middle shadow-sm rounded overflow-hidden mb-0">
+          <thead className="cell-align-middle text-center vista-table-head">
             <tr>
-              <td colSpan={columns.length} className="text-center text-muted py-4">
-                {t('common.noData')}
-              </td>
+              {columns.map((col) => (
+                <th key={col.key} className="text-nowrap">{col.label}</th>
+              ))}
             </tr>
-          ) : (
-            filteredData.map((row, idx) => (
-              <tr key={row.id || idx}>
-                {columns.map((col) => (
-                  <td key={col.key}>
-                    {col.render ? col.render(row) : row[col.key]}
-                  </td>
-                ))}
+          </thead>
+          <tbody className="cell-align-middle text-center">
+            {filteredData.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length} className="text-center text-muted py-4">
+                  {t('common.noData')}
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </Table>
+            ) : (
+              filteredData.map((row, idx) => (
+                <tr key={row.id || idx}>
+                  {columns.map((col) => (
+                    <td key={col.key} className="text-nowrap">
+                      {col.render ? col.render(row) : row[col.key]}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </Table>
+      </div>
 
       {/* === PAGINATION === */}
       {totalPages > 1 && (
-        <Pagination className="justify-content-center">
-          <Pagination.Prev disabled={page <= 1} onClick={() => onPageChange?.(page - 1)}>{t('common.previous')}</Pagination.Prev>
-          {[...Array(Math.min(totalPages, 10))].map((_, i) => (
+        <Pagination className="justify-content-center mt-3 flex-wrap datatable-pagination">
+          <Pagination.Prev disabled={page <= 1} onClick={() => onPageChange?.(page - 1)}>
+            <span className="d-none d-md-inline">{t('common.previous')}</span>
+            <i className="bi bi-chevron-left d-md-none"></i>
+          </Pagination.Prev>
+          {[...Array(Math.min(totalPages, window.innerWidth < 768 ? 5 : 10))].map((_, i) => (
             <Pagination.Item
               key={i + 1}
               active={page === i + 1}
@@ -172,7 +210,13 @@ export default function DataTable({
               {i + 1}
             </Pagination.Item>
           ))}
-          <Pagination.Next disabled={page >= totalPages} onClick={() => onPageChange?.(page + 1)}>{t('common.next')}</Pagination.Next>
+          {totalPages > (window.innerWidth < 768 ? 5 : 10) && (
+            <Pagination.Ellipsis disabled />
+          )}
+          <Pagination.Next disabled={page >= totalPages} onClick={() => onPageChange?.(page + 1)}>
+            <span className="d-none d-md-inline">{t('common.next')}</span>
+            <i className="bi bi-chevron-right d-md-none"></i>
+          </Pagination.Next>
         </Pagination>
       )}
     </>

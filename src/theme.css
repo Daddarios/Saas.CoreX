@@ -1531,3 +1531,211 @@ body {
 .theme-switch:not(.is-dark) .theme-switch-side-dark {
   opacity: 0.38;
 }
+/* ============================================================================
+   MOBILE TABLE OPTIMIZATIONS - Professional UX/UI
+   ============================================================================ */
+
+/* DataTable Wrapper - Horizontal Scroll on Mobile */
+.datatable-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+  border-radius: 0.75rem;
+}
+
+/* Scroll indicator shadow */
+.datatable-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.datatable-wrapper::-webkit-scrollbar-track {
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+
+.datatable-wrapper::-webkit-scrollbar-thumb {
+  background: var(--border-soft);
+  border-radius: 4px;
+}
+
+.datatable-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--vista-cadet);
+}
+
+/* Mobile-specific table styles */
+@media (max-width: 768px) {
+  /* DataTable Toolbar */
+  .datatable-toolbar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .datatable-search {
+    max-width: 100% !important;
+  }
+
+  /* Touch-friendly buttons */
+  .btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  /* Table padding adjustments */
+  .table > :not(caption) > * > * {
+    padding: 0.75rem 0.5rem;
+  }
+
+  /* Pagination - More compact on mobile */
+  .datatable-pagination {
+    gap: 0.25rem;
+  }
+
+  .datatable-pagination .page-item {
+    margin: 0 2px;
+  }
+
+  .datatable-pagination .page-link {
+    padding: 0.5rem 0.75rem;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Container padding */
+  .container,
+  .container-fluid {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  /* Card adjustments */
+  .card {
+    margin-bottom: 1rem;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  /* Modal optimizations */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  /* Form controls - Touch friendly */
+  .form-control,
+  .form-select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  /* Button groups wrap on mobile */
+  .btn-group {
+    flex-wrap: wrap;
+  }
+
+  /* Action buttons in tables - Stack vertically */
+  .table .btn-group-vertical {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .table .btn-group > .btn {
+    margin-bottom: 0.25rem;
+  }
+}
+
+/* Extra small devices (phones, less than 576px) */
+@media (max-width: 576px) {
+  /* Even more compact pagination */
+  .datatable-pagination .page-link {
+    padding: 0.4rem 0.6rem;
+    min-width: 36px;
+    font-size: 0.875rem;
+  }
+
+  /* Hide some table columns on very small screens */
+  .table .d-none-xs {
+    display: none !important;
+  }
+
+  /* Stack form groups vertically */
+  .row > .col,
+  .row > [class*="col-"] {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Full-width modals on small phones */
+  .modal-dialog {
+    margin: 0;
+    max-width: 100%;
+  }
+
+  .modal-content {
+    border-radius: 0;
+    min-height: 100vh;
+  }
+
+  /* Compact headers */
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  h4 { font-size: 1.1rem; }
+}
+
+/* Landscape mode optimizations for mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .datatable-wrapper {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .modal-dialog {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* Touch-friendly action buttons in tables */
+.table-action-btn {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0.4rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .table-action-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Prevent text selection during touch */
+.table-action-btn,
+.pagination .page-link,
+.btn {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  user-select: none;
+}
+
+/* Loading states on mobile */
+@media (max-width: 768px) {
+  .spinner-border-sm {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+
+/* Mobile Table Optimizations */
+.datatable-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1rem; border-radius: 0.75rem; }
+

@@ -10,12 +10,13 @@ import { benutzerApi } from '../api/benutzerApi';
 import { useLanguage } from '../hooks/useLanguage';
 import { ApiError, parseApiError } from '../api/errorHandler';
 import { usePermission } from '../hooks/usePermission';
+import { API_ORIGIN } from '../api/axiosClient';
 
 // ============================================================================
 // === CONSTANTS & HELPERS ===
 // ============================================================================
 const rollen = ['SuperAdmin', 'Admin', 'Manager', 'Standard', 'NurLesen'];
-const STORAGE_URL = 'http://localhost:8080';
+const STORAGE_URL = API_ORIGIN;
 const imageUrl = (path) => {
   if (!path) return null;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
