@@ -1,7 +1,7 @@
 // ============================================================================
 // === IMPORTS ===
 // ============================================================================
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Container, Button, Modal, Form, Alert, ListGroup, Spinner, Badge } from 'react-bootstrap';
 import '../styles/Kunden.css';
 import { useNavigate } from 'react-router-dom';
@@ -104,18 +104,6 @@ export default function Kunden() {
     }
   };
 
-  // ---------- STATS ----------
-  const miniStats = useMemo(() => {
-    const withLogo = data.filter(d => d.logo).length;
-    const withEmail = data.filter(d => d.email).length;
-    return [
-      { label: 'Gesamt', value: total, icon: 'bi-people-fill', bg: 'rgba(99,102,241,0.1)', color: '#6366f1' },
-      { label: 'Mit Logo', value: withLogo, icon: 'bi-image', bg: 'rgba(16,185,129,0.1)', color: '#10b981' },
-      { label: 'Mit E-Mail', value: withEmail, icon: 'bi-envelope-fill', bg: 'rgba(245,158,11,0.1)', color: '#f59e0b' },
-      { label: 'Auf Seite', value: data.length, icon: 'bi-list-ul', bg: 'rgba(6,182,212,0.1)', color: '#06b6d4' },
-    ];
-  }, [data, total]);
-
   // ---------- TABLE COLUMNS DEFINITION ----------
   const columns = [
     {
@@ -138,7 +126,7 @@ export default function Kunden() {
     { key: 'telefonMobil', label: t('kunden.phone') },
     {
       key: 'actions',
-      label: '',
+      label: t('common.actions'),
       render: (row) => (
         <div className="d-flex gap-1 justify-content-end">
           <button className="kunden-action-btn info" title="Ansprechpartner"
@@ -168,64 +156,33 @@ export default function Kunden() {
 
   // ---------- RENDER ----------
   return (
-    <div className="kunden-root">
-      {/* ── HEADER ── */}
-      <div className="kunden-header">
-        <div className="kunden-header-content">
-          <div className="kunden-header-left">
-            <div className="kunden-header-icon">
-              <i className="bi bi-people-fill" />
-            </div>
-            <div className="kunden-header-text">
-              <h2>{t('kunden.title')}</h2>
-              <p className="kunden-header-subtitle">{total} {t('kunden.title')} insgesamt</p>
-            </div>
-          </div>
-          <div className="kunden-header-actions">
-            {canCreate && (
-              <button className="kunden-new-btn" onClick={() => { setEditItem(null); setShowModal(true); }}>
-                <i className="bi bi-plus-lg" /> {t('kunden.new')}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── MINI STATS ── */}
-      <div className="kunden-stats-row">
-        {miniStats.map((s, i) => (
-          <div key={i} className="kunden-mini-stat">
-            <div className="kunden-mini-stat-icon" style={{ background: s.bg, color: s.color }}>
-              <i className={`bi ${s.icon}`} />
-            </div>
-            <div>
-              <div className="kunden-mini-stat-value">{s.value}</div>
-              <div className="kunden-mini-stat-label">{s.label}</div>
-            </div>
-          </div>
-        ))}
+    <Container fluid className="py-4">
+      {/* Header: Title + New Button */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h2>{t('kunden.title')}</h2>
+        {canCreate && <Button className="rounded-2" onClick={() => { setEditItem(null); setShowModal(true); }}>
+          <i className="bi bi-plus-lg me-1" /> {t('kunden.new')}
+        </Button>}
       </div>
 
       {/* Error Alert */}
-      {error && <Alert variant="danger" className="rounded-3">{error}</Alert>}
+      {error && <Alert variant="danger">{error}</Alert>}
 
       {/* === TABLE === */}
-      <div className="kunden-table-wrapper">
-        {loading ? (
-          <LoadingSpinner text={t('kunden.loading')} />
-        ) : (
-          <DataTable
-            columns={columns}
-            data={data}
-            totalCount={total}
-            page={page}
-            size={size}
-            onPageChange={setPage}
-            onSearch={setSearch}
-            searchPlaceholder={t('kunden.search')}
-          />
-        )}
-      </div>
+      {loading ? (
+        <LoadingSpinner text={t('kunden.loading')} />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={data}
+          totalCount={total}
+          page={page}
+          size={size}
+          onPageChange={setPage}
+          onSearch={setSearch}
+          searchPlaceholder={t('kunden.search')}
+        />
+      )}
 
       {/* === MODALS === */}
       <KundeModal
@@ -261,7 +218,7 @@ export default function Kunden() {
           onHide={() => setProjekteKunde(null)}
         />
       )}
-    </div>
+    </Container>
   );
 }
 
