@@ -1,8 +1,9 @@
 // ============================================================================
 // === IMPORTS ===
 // ============================================================================
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { Container, Button, Modal, Form, Alert, ListGroup, Spinner, Badge } from 'react-bootstrap';
+import '../styles/Kunden.css';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../components/shared/DataTable';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
@@ -103,6 +104,18 @@ export default function Kunden() {
     }
   };
 
+  // ---------- STATS ----------
+  const miniStats = useMemo(() => {
+    const withLogo = data.filter(d => d.logo).length;
+    const withEmail = data.filter(d => d.email).length;
+    return [
+      { label: 'Gesamt', value: total, icon: 'bi-people-fill', bg: 'rgba(99,102,241,0.1)', color: '#6366f1' },
+      { label: 'Mit Logo', value: withLogo, icon: 'bi-image', bg: 'rgba(16,185,129,0.1)', color: '#10b981' },
+      { label: 'Mit E-Mail', value: withEmail, icon: 'bi-envelope-fill', bg: 'rgba(245,158,11,0.1)', color: '#f59e0b' },
+      { label: 'Auf Seite', value: data.length, icon: 'bi-list-ul', bg: 'rgba(6,182,212,0.1)', color: '#06b6d4' },
+    ];
+  }, [data, total]);
+
   // ---------- TABLE COLUMNS DEFINITION ----------
   const columns = [
     {
@@ -125,65 +138,94 @@ export default function Kunden() {
     { key: 'telefonMobil', label: t('kunden.phone') },
     {
       key: 'actions',
-      label: t('common.actions'),
+      label: '',
       render: (row) => (
-        <>
-          {/* Ansprechpartner Button */}
-          <Button size="sm" variant="outline-info" className="me-1 rounded-2"
-            title="Ansprechpartner"
+        <div className="d-flex gap-1 justify-content-end">
+          <button className="kunden-action-btn info" title="Ansprechpartner"
             onClick={() => setAnsprechpartnerKunde(row)}>
             <i className="bi bi-person-lines-fill" />
-          </Button>
-          {/* Projekte Button */}
-          <Button size="sm" variant="outline-success" className="me-1 rounded-2"
-            title="Projekte"
+          </button>
+          <button className="kunden-action-btn success" title="Projekte"
             onClick={() => setProjekteKunde(row)}>
-            <i className="bi bi-folder" />
-          </Button>
-          {/* Edit Button — NurLesen göremez */}
-          {canEdit && <Button size="sm" variant="outline-primary" className="me-1 rounded-2"
-            onClick={() => { setEditItem(row); setShowModal(true); }}>
-            <i className="bi bi-pencil" />
-          </Button>}
-          {/* Delete Button — NurLesen göremez */}
-          {canDelete && <Button size="sm" variant="outline-danger" className="rounded-2" onClick={() => setDeleteId(row.id)}>
-            <i className="bi bi-trash" />
-          </Button>}
-        </>
+            <i className="bi bi-folder2-open" />
+          </button>
+          {canEdit && (
+            <button className="kunden-action-btn primary" title="Bearbeiten"
+              onClick={() => { setEditItem(row); setShowModal(true); }}>
+              <i className="bi bi-pencil" />
+            </button>
+          )}
+          {canDelete && (
+            <button className="kunden-action-btn danger" title="Löschen"
+              onClick={() => setDeleteId(row.id)}>
+              <i className="bi bi-trash3" />
+            </button>
+          )}
+        </div>
       ),
     },
   ];
 
   // ---------- RENDER ----------
   return (
-    <Container fluid className="py-4">
-      {/* Header: Title + New Button */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>{t('kunden.title')}</h2>
-        {/* Yeni Müşteri — NurLesen göremez */}
-        {canCreate && <Button className="rounded-2" onClick={() => { setEditItem(null); setShowModal(true); }}>
-          <i className="bi bi-plus-lg me-1" /> {t('kunden.new')}
-        </Button>}
+    <div className="kunden-root">
+      {/* ── HEADER ── */}
+      <div className="kunden-header">
+        <div className="kunden-header-content">
+          <div className="kunden-header-left">
+            <div className="kunden-header-icon">
+              <i className="bi bi-people-fill" />
+            </div>
+            <div className="kunden-header-text">
+              <h2>{t('kunden.title')}</h2>
+              <p className="kunden-header-subtitle">{total} {t('kunden.title')} insgesamt</p>
+            </div>
+          </div>
+          <div className="kunden-header-actions">
+            {canCreate && (
+              <button className="kunden-new-btn" onClick={() => { setEditItem(null); setShowModal(true); }}>
+                <i className="bi bi-plus-lg" /> {t('kunden.new')}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── MINI STATS ── */}
+      <div className="kunden-stats-row">
+        {miniStats.map((s, i) => (
+          <div key={i} className="kunden-mini-stat">
+            <div className="kunden-mini-stat-icon" style={{ background: s.bg, color: s.color }}>
+              <i className={`bi ${s.icon}`} />
+            </div>
+            <div>
+              <div className="kunden-mini-stat-value">{s.value}</div>
+              <div className="kunden-mini-stat-label">{s.label}</div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Error Alert */}
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && <Alert variant="danger" className="rounded-3">{error}</Alert>}
 
       {/* === TABLE === */}
-      {loading ? (
-        <LoadingSpinner text={t('kunden.loading')} />
-      ) : (
-        <DataTable
-          columns={columns}
-          data={data}
-          totalCount={total}
-          page={page}
-          size={size}
-          onPageChange={setPage}
-          onSearch={setSearch}
-          searchPlaceholder={t('kunden.search')}
-        />
-      )}
+      <div className="kunden-table-wrapper">
+        {loading ? (
+          <LoadingSpinner text={t('kunden.loading')} />
+        ) : (
+          <DataTable
+            columns={columns}
+            data={data}
+            totalCount={total}
+            page={page}
+            size={size}
+            onPageChange={setPage}
+            onSearch={setSearch}
+            searchPlaceholder={t('kunden.search')}
+          />
+        )}
+      </div>
 
       {/* === MODALS === */}
       <KundeModal
@@ -219,7 +261,7 @@ export default function Kunden() {
           onHide={() => setProjekteKunde(null)}
         />
       )}
-    </Container>
+    </div>
   );
 }
 
@@ -313,13 +355,13 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
     setSaving(true);
     setFieldErrors({});
     setLogoError('');
-    
+
     // Logo'yu payload'dan çıkar ve diğer alanları hazırla
     const { logo: _logo, ...rest } = form;
-    
+
     // Payload oluştur: Tüm string alanları boş string olarak gönder (NULL değil!)
     const payload = {};
-    
+
     Object.entries(rest).forEach(([key, value]) => {
       if (typeof value === 'string') {
         // Başındaki/sonundaki boşlukları temizle
@@ -331,18 +373,18 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
         payload[key] = value ?? '';
       }
     });
-    
+
     console.log('[Kunden] Submitting payload:', payload);
-    
+
     try {
       // 1. Önce müşteri bilgilerini kaydet (create veya update)
       const response = await onSave(payload);
-      
+
       // 2. Eğer logo dosyası seçilmişse, şimdi yükle
       if (logoFile) {
         // Müşteri ID'sini al (düzenleme modunda initial'dan, yeni kayıtta response'dan)
         const customerId = initial?.id || response?.data?.id;
-        
+
         if (customerId) {
           try {
             await kundeApi.uploadLogo(customerId, logoFile);
@@ -360,12 +402,12 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
           }
         }
       }
-      
+
       // Her şey başarılı - listeyi yenile ve modal'ı kapat
       if (onRefresh) await onRefresh();
       onHide();
       setSaving(false);
-      
+
     } catch (err) {
       setSaving(false);
       if (err instanceof ApiError) {
@@ -408,11 +450,11 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
             {/* Unternehmen */}
             <div className="col-md-6">
               <Form.Label>{t('kunden.company')} *</Form.Label>
-              <Form.Control 
-                required 
+              <Form.Control
+                required
                 isInvalid={!!fieldErrors.unternehmen}
                 value={form.unternehmen}
-                onChange={(e) => setForm({ ...form, unternehmen: e.target.value })} 
+                onChange={(e) => setForm({ ...form, unternehmen: e.target.value })}
               />
               {fieldErrors.unternehmen && (
                 <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -424,12 +466,12 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
             {/* Email */}
             <div className="col-md-6">
               <Form.Label>{t('auth.email')} *</Form.Label>
-              <Form.Control 
-                type="email" 
-                required 
+              <Form.Control
+                type="email"
+                required
                 isInvalid={!!fieldErrors.email}
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })} 
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
               {fieldErrors.email && (
                 <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -441,10 +483,10 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
             {/* Vorname */}
             <div className="col-md-6">
               <Form.Label>{t('kunden.firstName')}</Form.Label>
-              <Form.Control 
+              <Form.Control
                 isInvalid={!!fieldErrors.vorname}
                 value={form.vorname}
-                onChange={(e) => setForm({ ...form, vorname: e.target.value })} 
+                onChange={(e) => setForm({ ...form, vorname: e.target.value })}
               />
               {fieldErrors.vorname && (
                 <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -456,10 +498,10 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
             {/* Nachname */}
             <div className="col-md-6">
               <Form.Label>{t('kunden.lastName')}</Form.Label>
-              <Form.Control 
+              <Form.Control
                 isInvalid={!!fieldErrors.nachname}
                 value={form.nachname}
-                onChange={(e) => setForm({ ...form, nachname: e.target.value })} 
+                onChange={(e) => setForm({ ...form, nachname: e.target.value })}
               />
               {fieldErrors.nachname && (
                 <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -471,10 +513,10 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
             {/* Telefon Mobil */}
             <div className="col-md-6">
               <Form.Label>{t('kunden.mobilePhone')}</Form.Label>
-              <Form.Control 
+              <Form.Control
                 isInvalid={!!fieldErrors.telefonMobil}
                 value={form.telefonMobil}
-                onChange={(e) => setForm({ ...form, telefonMobil: e.target.value })} 
+                onChange={(e) => setForm({ ...form, telefonMobil: e.target.value })}
               />
               {fieldErrors.telefonMobil && (
                 <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -486,10 +528,10 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
             {/* Telefon Haus */}
             <div className="col-md-6">
               <Form.Label>{t('kunden.homePhone')}</Form.Label>
-              <Form.Control 
+              <Form.Control
                 isInvalid={!!fieldErrors.telefonHaus}
                 value={form.telefonHaus}
-                onChange={(e) => setForm({ ...form, telefonHaus: e.target.value })} 
+                onChange={(e) => setForm({ ...form, telefonHaus: e.target.value })}
               />
               {fieldErrors.telefonHaus && (
                 <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -501,10 +543,10 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
             {/* Adresse */}
             <div className="col-12">
               <Form.Label>{t('kunden.address')}</Form.Label>
-              <Form.Control 
+              <Form.Control
                 isInvalid={!!fieldErrors.adresse}
                 value={form.adresse}
-                onChange={(e) => setForm({ ...form, adresse: e.target.value })} 
+                onChange={(e) => setForm({ ...form, adresse: e.target.value })}
               />
               {fieldErrors.adresse && (
                 <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -516,10 +558,10 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
             {/* Website */}
             <div className="col-md-6">
               <Form.Label>{t('kunden.website')}</Form.Label>
-              <Form.Control 
+              <Form.Control
                 isInvalid={!!fieldErrors.website}
                 value={form.website}
-                onChange={(e) => setForm({ ...form, website: e.target.value })} 
+                onChange={(e) => setForm({ ...form, website: e.target.value })}
               />
               {fieldErrors.website && (
                 <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -545,7 +587,7 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
                     </Button>
                   </div>
                 )}
-                
+
                 {/* Dosya Seçimi */}
                 <div className="d-flex gap-2 align-items-center">
                   <Form.Control
@@ -555,10 +597,10 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
                     onChange={handleLogoFileSelect}
                   />
                   {logoFile && (
-                    <Button 
-                      variant="outline-secondary" 
-                      size="sm" 
-                      className="rounded-2" 
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      className="rounded-2"
                       onClick={handleLogoRemoveSelection}
                       title="Seçimi kaldır"
                     >
@@ -566,7 +608,7 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
                     </Button>
                   )}
                 </div>
-                
+
                 {/* Logo Seçildi Mesajı */}
                 {logoFile && (
                   <small className="text-success d-block mt-1">
@@ -574,10 +616,10 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
                     {logoFile.name} seçildi. Kaydet butonuna bastığınızda yüklenecek.
                   </small>
                 )}
-                
+
                 {/* Hata Mesajı */}
                 {logoError && <small className="text-danger d-block mt-1">{logoError}</small>}
-                
+
                 {/* Bilgilendirme */}
                 {!initial?.id && !logoFile && (
                   <small className="text-muted d-block mt-1">
@@ -591,12 +633,12 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
             {/* === NOTLAR === */}
             <div className="col-12">
               <Form.Label>{t('kunden.notes')}</Form.Label>
-              <Form.Control 
-                as="textarea" 
-                rows={2} 
+              <Form.Control
+                as="textarea"
+                rows={2}
                 isInvalid={!!fieldErrors.hinweise}
                 value={form.hinweise}
-                onChange={(e) => setForm({ ...form, hinweise: e.target.value })} 
+                onChange={(e) => setForm({ ...form, hinweise: e.target.value })}
               />
               {fieldErrors.hinweise && (
                 <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
@@ -608,9 +650,9 @@ function KundeModal({ show, onHide, onSave, onRefresh, initial, error }) {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" className="rounded-2" onClick={onHide} disabled={saving}>{t('common.cancel')}</Button>
-          <Button 
-            type="submit" 
-            variant="primary" 
+          <Button
+            type="submit"
+            variant="primary"
             className="rounded-2"
             disabled={saving}
           >
@@ -704,7 +746,7 @@ function AnsprechpartnerModal({ kunde, onHide }) {
         kundeId: kunde.id
       };
       console.log('[Ansprechpartner] Saving:', payload);
-      
+
       if (editItem) {
         await ansprechpartnerApi.update(editItem.id, payload);
       } else {
@@ -808,7 +850,7 @@ function AnsprechpartnerModal({ kunde, onHide }) {
                     </div>
                     <div className="col-12">
                       <Form.Label>Filiale</Form.Label>
-                      <Form.Select 
+                      <Form.Select
                         value={form.filialeId}
                         onChange={(e) => setForm({ ...form, filialeId: e.target.value })}
                       >
@@ -856,16 +898,16 @@ function ProjekteModal({ kunde, onHide }) {
       console.log('[ProjekteModal] Loading projects for Kunde ID:', kunde.id);
       const res = await projektApi.getByKunde(kunde.id);
       console.log('[ProjekteModal] API Response:', res.data);
-      
+
       // Backend kundeId filtresi desteklemiyorsa, frontend'te filtrele
       let projects = res.data?.items || res.data || [];
-      
+
       // Eğer backend filtreleme yapmadıysa, manuel filtrele
       const filteredProjects = projects.filter(p => p.kundeId === kunde.id);
-      
+
       console.log('[ProjekteModal] Total projects:', projects.length);
       console.log('[ProjekteModal] Filtered projects for kunde:', filteredProjects.length);
-      
+
       setList(filteredProjects);
     } catch (err) {
       console.error('[ProjekteModal] Load error:', err);
@@ -905,14 +947,14 @@ function ProjekteModal({ kunde, onHide }) {
         <Modal.Title className="d-flex align-items-center mb-2 mt-2 w-100 ">
           {/* Sol: Projects yazısı */}
           <span className="me-auto"><i className="bi bi-folder2-open me-2"></i>{t('projekte.projekteFor')}</span>
-          
+
           {/* Orta: Logo + Unternehmen */}
           <div className="d-flex align-items-center gap-2 position-absolute start-50 translate-middle-x">
             {kunde.logo ? (
               <img
                 src={imageUrl(kunde.logo)}
                 alt="Logo"
-                style={{ maxHeight: 32, maxWidth: 64, objectFit: 'contain', border: '1px solid #ddd', borderRadius: 4 }}  
+                style={{ maxHeight: 32, maxWidth: 64, objectFit: 'contain', border: '1px solid #ddd', borderRadius: 4 }}
               />
             ) : (
               <i className="bi bi-folder" />
@@ -948,7 +990,7 @@ function ProjekteModal({ kunde, onHide }) {
                       {item.beschreibung && (
                         <p className="mb-1 text-muted small">{item.beschreibung}</p>
                       )}
-                      
+
                       {/* Atanan Kullanıcılar (Yetkililer) */}
                       {item.benutzer && item.benutzer.length > 0 && (
                         <div className="mb-2">
@@ -957,9 +999,9 @@ function ProjekteModal({ kunde, onHide }) {
                             {t('projekte.assignedUsers', 'Yetkililer')}:
                           </small>
                           {item.benutzer.map((user) => (
-                            <Badge 
-                              key={user.id} 
-                              bg="info" 
+                            <Badge
+                              key={user.id}
+                              bg="info"
                               className="me-1 fw-normal"
                               style={{ fontSize: '0.75rem' }}
                             >
@@ -969,7 +1011,7 @@ function ProjekteModal({ kunde, onHide }) {
                           ))}
                         </div>
                       )}
-                      
+
                       <div className="small text-muted">
                         {item.startdatum && (
                           <span className="me-3">
@@ -999,9 +1041,9 @@ function ProjekteModal({ kunde, onHide }) {
                         </Badge>
                       )}
                       {/* Projeye Git Butonu */}
-                      <Button 
-                        size="sm" 
-                        variant="outline-primary" 
+                      <Button
+                        size="sm"
+                        variant="outline-primary"
                         className="rounded-2"
                         onClick={() => {
                           onHide();

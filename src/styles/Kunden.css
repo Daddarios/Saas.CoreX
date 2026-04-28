@@ -1,0 +1,280 @@
+/* ═══════════════════════════════════════════
+   KUNDEN — Premium Page Styles
+   ═══════════════════════════════════════════ */
+
+/* ── PAGE ROOT ── */
+.kunden-root {
+  padding: 0 1.5rem 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* ── HEADER ── */
+.kunden-header {
+  padding: 2rem 0 1.5rem;
+}
+
+.kunden-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.kunden-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.kunden-header-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.kunden-header-text h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.025em;
+}
+
+.kunden-header-subtitle {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin: 0.15rem 0 0;
+}
+
+.kunden-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* ── NEW BUTTON ── */
+.kunden-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+}
+
+.kunden-new-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.kunden-new-btn:active {
+  transform: translateY(0);
+}
+
+/* ── STATS ROW ── */
+.kunden-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 992px) {
+  .kunden-stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 576px) {
+  .kunden-stats-row { grid-template-columns: 1fr; }
+}
+
+.kunden-mini-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--bs-body-bg, #fff);
+  transition: all 0.25s ease;
+}
+
+.kunden-mini-stat:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+.kunden-mini-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.kunden-mini-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.kunden-mini-stat-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ── TABLE WRAPPER ── */
+.kunden-table-wrapper {
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--bs-body-bg, #fff);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease;
+}
+
+.kunden-table-wrapper:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* ── TABLE CELL: LOGO ── */
+.kunden-logo-cell {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  object-fit: contain;
+  background: #fff;
+  padding: 3px;
+}
+
+.kunden-logo-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e2e8f0, #f1f5f9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 1.25rem;
+}
+
+/* ── TABLE CELL: COMPANY ── */
+.kunden-company-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.kunden-company-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--bs-body-color);
+}
+
+.kunden-company-email {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+/* ── TABLE CELL: CONTACT ── */
+.kunden-contact-name {
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.kunden-contact-phone {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+/* ── ACTION BUTTONS ── */
+.kunden-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  padding: 0;
+}
+
+.kunden-action-btn.info {
+  color: #06b6d4;
+}
+
+.kunden-action-btn.info:hover {
+  background: rgba(6, 182, 212, 0.1);
+  border-color: rgba(6, 182, 212, 0.2);
+}
+
+.kunden-action-btn.success {
+  color: #10b981;
+}
+
+.kunden-action-btn.success:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.kunden-action-btn.primary {
+  color: #6366f1;
+}
+
+.kunden-action-btn.primary:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.kunden-action-btn.danger {
+  color: #ef4444;
+}
+
+.kunden-action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* ── DARK MODE ── */
+[data-bs-theme="dark"] .kunden-table-wrapper {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-bs-theme="dark"] .kunden-mini-stat {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-bs-theme="dark"] .kunden-logo-placeholder {
+  background: linear-gradient(135deg, #334155, #1e293b);
+  color: #64748b;
+}
+
+[data-bs-theme="dark"] .kunden-logo-cell {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #0f172a;
+}
