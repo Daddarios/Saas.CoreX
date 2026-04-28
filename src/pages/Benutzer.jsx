@@ -7,6 +7,7 @@ import DataTable from '../components/shared/DataTable';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ConfirmDialog from '../components/shared/ConfirmDialog';
 import { benutzerApi } from '../api/benutzerApi';
+import { authApi } from '../api/authApi';
 import { useLanguage } from '../hooks/useLanguage';
 import { ApiError, parseApiError } from '../api/errorHandler';
 import { usePermission } from '../hooks/usePermission';
@@ -42,6 +43,7 @@ export default function Benutzer() {
   const [deleteId, setDeleteId] = useState(null);
   const [viewItem, setViewItem] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showLocked, setShowLocked] = useState(false);
   const size = 20;
 
   // ---------- EFFECTS & CALLBACKS ----------
@@ -177,22 +179,36 @@ export default function Benutzer() {
       {/* Header: Title + New Button */}
       <div className="d-flex justify-content-between align-items-center ">
         <h2 className="mb-5">Personal</h2>
-        <Button className="rounded-3 bg-outline-primary"
-          onClick={() => {
-            setEditItem(null);
-            setShowModal(true);
-          }}
-          style={{ display: canManageUsers ? 'inline-flex' : 'none' }} // Admin, SuperAdmin & Manager görür
-        >
-          <i className="bi bi-plus-lg me-1" /> {t('benutzer.new')}
-        </Button>
+        <div className="d-flex gap-2">
+          {canManageUsers && (
+            <Button
+              variant={showLocked ? 'warning' : 'outline-warning'}
+              className="rounded-3"
+              onClick={() => setShowLocked(!showLocked)}
+            >
+              <i className="bi bi-lock-fill me-1" />
+              {showLocked ? 'Zurück' : 'Gesperrte'}
+            </Button>
+          )}
+          <Button className="rounded-3 bg-outline-primary"
+            onClick={() => {
+              setEditItem(null);
+              setShowModal(true);
+            }}
+            style={{ display: canManageUsers ? 'inline-flex' : 'none' }}
+          >
+            <i className="bi bi-plus-lg me-1" /> {t('benutzer.new')}
+          </Button>
+        </div>
       </div>
 
       {/* Error Alert */}
       {error && <Alert  className=" w-25 text-center justify-content-center mx-auto" variant="danger"><i className="bi bi-exclamation-triangle-fill me-2"></i> {error}</Alert>}
 
-      {/* === TABLO === */}
-      {loading ? (
+      {/* === KILITLI KULLANICILAR veya TABLO === */}
+      {showLocked ? (
+        <LockedUsersPanel />
+      ) : loading ? (
         <LoadingSpinner text={t('benutzer.loading')} />
       ) : (
         <DataTable
@@ -237,6 +253,94 @@ export default function Benutzer() {
         onConfirm={handleDelete}
       />
     </Container>
+  );
+}
+
+// ============================================================================
+// === PANEL: LOCKED USERS ===
+// ============================================================================
+function LockedUsersPanel() {
+  const [locked, setLocked] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [unlocking, setUnlocking] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await authApi.getLockedUsers();
+      setLocked(res.data || []);
+    } catch {
+      setError('Gesperrte Benutzer konnten nicht geladen werden.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleUnlock = async (email) => {
+    setUnlocking(email);
+    try {
+      await authApi.unlockUser(email);
+      await load();
+    } catch {
+      setError(`Entsperren fehlgeschlagen: ${email}`);
+    } finally {
+      setUnlocking(null);
+    }
+  };
+
+  if (loading) return <LoadingSpinner text="Gesperrte Benutzer werden geladen..." />;
+
+  return (
+    <div>
+      {error && <Alert variant="danger">{error}</Alert>}
+      {locked.length === 0 ? (
+        <Alert variant="success">
+          <i className="bi bi-check-circle-fill me-2" />
+          Keine gesperrten Benutzer vorhanden.
+        </Alert>
+      ) : (
+        <div className="table-responsive">
+          <table className="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Gesperrt seit</th>
+                <th className="text-end">Aktion</th>
+              </tr>
+            </thead>
+            <tbody>
+              {locked.map((u) => (
+                <tr key={u.email || u.id}>
+                  <td>{u.email}</td>
+                  <td>{u.vorname} {u.nachname}</td>
+                  <td>{u.lockoutEnd?.slice(0, 16) || '—'}</td>
+                  <td className="text-end">
+                    <Button
+                      size="sm"
+                      variant="outline-success"
+                      className="rounded-2"
+                      disabled={unlocking === u.email}
+                      onClick={() => handleUnlock(u.email)}
+                    >
+                      {unlocking === u.email ? (
+                        <Spinner size="sm" />
+                      ) : (
+                        <><i className="bi bi-unlock me-1" />Entsperren</>
+                      )}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 

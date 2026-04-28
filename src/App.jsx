@@ -10,6 +10,9 @@ import Tickets from './pages/Tickets';
 import Chat from './pages/Chat';
 import Benutzer from './pages/Benutzer';
 import Berichte from './pages/Berichte';
+import Abonnement from './pages/Abonnement';
+import Zahlung from './pages/Zahlung';
+import Filiale from './pages/Filiale';
 
 function App() {
   return (
@@ -29,6 +32,7 @@ function App() {
         <Route path="projekte" element={<Projekte />} />
         <Route path="tickets" element={<Tickets />} />
         <Route path="chat" element={<Chat />} />
+        <Route path="filialen" element={<Filiale />} />
         {/* Sadece SuperAdmin ve Admin erişebilir */}
         <Route path="benutzer" element={
           <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'Manager']}>
@@ -36,6 +40,16 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="berichte" element={<Berichte />} />
+        <Route path="abonnement" element={
+          <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
+            <Abonnement />
+          </ProtectedRoute>
+        } />
+        <Route path="zahlung" element={
+          <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
+            <Zahlung />
+          </ProtectedRoute>
+        } />
       </Route>
     </Routes>
   );

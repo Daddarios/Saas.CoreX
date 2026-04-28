@@ -51,7 +51,7 @@ export default function ZweiFaktor() {
       <div className="login-box">
         <form onSubmit={handleSubmit} autoComplete="off">
           <div className="login-form">
-            <div className="login-header">
+            <div className="login-header  ">
               <h3>Bestätigungscode</h3>
             </div>
             <div className="login-body">

@@ -12,4 +12,8 @@ export const authApi = {
   me: () => axiosClient.get('/auth/me'),
 
   logout: () => axiosClient.post('/auth/logout'),
+
+  getLockedUsers: () => axiosClient.get('/auth/locked-users'),
+
+  unlockUser: (email) => axiosClient.post(`/auth/unlock/${encodeURIComponent(email)}`),
 };

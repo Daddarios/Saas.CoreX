@@ -24,14 +24,20 @@ const navGroups = [
       { to: '/kunden',   labelKey: 'sidebar.kunden',   icon: 'bi-people-fill' },
       { to: '/projekte', labelKey: 'sidebar.projekte',  icon: 'bi-kanban-fill' },
       { to: '/tickets',  labelKey: 'sidebar.tickets',   icon: 'bi-ticket-detailed-fill' },
+      { to: '/filialen', labelKey: 'sidebar.filialen',  icon: 'bi-building' },
     ],
   },
   {
     items: [
-      // Benutzer: sadece SuperAdmin ve Admin görür
       { to: '/benutzer', labelKey: 'sidebar.benutzer', icon: 'bi-person-gear', allowedRoles: ['SuperAdmin', 'Admin', 'Manager'] },
       { to: '/berichte', labelKey: 'sidebar.berichte', icon: 'bi-file-earmark-bar-graph-fill' },
       { to: '/chat',     labelKey: 'sidebar.chat',     icon: 'bi-chat-dots-fill' },
+    ],
+  },
+  {
+    items: [
+      { to: '/abonnement', labelKey: 'sidebar.abonnement', icon: 'bi-credit-card', allowedRoles: ['SuperAdmin', 'Admin'] },
+      { to: '/zahlung',    labelKey: 'sidebar.zahlung',    icon: 'bi-wallet2', allowedRoles: ['SuperAdmin', 'Admin'] },
     ],
   },
 ];
