@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
-import { getAccessToken } from '../api/axiosClient';
+import { getAccessToken, API_ORIGIN } from '../api/axiosClient';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-const BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+const BASE_URL = API_ORIGIN;
 
 export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
   const connectionRef = useRef(null);
@@ -64,8 +63,14 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
 
     const cancelled = { current: false };
 
+    let mandantId = localStorage.getItem('mandantId');
+    if (!mandantId || mandantId === 'null' || mandantId === 'undefined') {
+      mandantId = '00000000-0000-0000-0000-000000000000';
+    }
+    const urlWithParams = `${BASE_URL}${hubPath}?mandantId=${mandantId}`;
+
     const connection = new HubConnectionBuilder()
-      .withUrl(`${BASE_URL}${hubPath}`, {
+      .withUrl(urlWithParams, {
         withCredentials: true,
         accessTokenFactory: () => getAccessToken() ?? undefined,
         transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
@@ -101,10 +106,9 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
       Object.entries(registeredHandlersRef.current).forEach(([method, handler]) => {
         connection.off(method, handler);
       });
-      connection.stop().then(() => {
-        connectionRef.current = null;
-        startingRef.current = false;
-      });
+      connectionRef.current = null;
+      startingRef.current = false;
+      connection.stop().catch(console.error);
     };
   }, [autoStart, hubPath, startConnection]);
 

@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useLanguage } from '../../hooks/useLanguage';
+import VikaChat from '../shared/VikaChat/VikaChat';
 
 export default function MainLayout() {
   const { t } = useLanguage();
@@ -43,6 +44,7 @@ export default function MainLayout() {
     return localStorage.getItem('desktop-sidebar-collapsed') === 'true';
   });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isVikaOpen, setIsVikaOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -143,6 +145,30 @@ export default function MainLayout() {
             <Outlet />
           </div>
         </main>
+
+        {/* VIKA AI Assistant Floating Widget */}
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999 }}>
+          {isVikaOpen && (
+            <div style={{ position: 'absolute', bottom: '80px', right: '0', width: '380px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', borderRadius: '12px' }}>
+              <VikaChat />
+            </div>
+          )}
+          <button 
+            onClick={() => setIsVikaOpen(!isVikaOpen)}
+            style={{ 
+              width: '60px', height: '60px', borderRadius: '50%', 
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
+              color: 'white', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '28px', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)',
+              transition: 'transform 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <i className={isVikaOpen ? "bi bi-x-lg" : "bi bi-robot"}></i>
+          </button>
+        </div>
       </div>
     </div>
   );
