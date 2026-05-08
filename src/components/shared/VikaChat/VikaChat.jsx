@@ -7,6 +7,8 @@ import '../../../styles/VikaChat.css';
 
 export default function VikaChat() {
   const [inputText, setInputText] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const { messages, isTyping, sendMessage, connected, status } = useVikaChat();
   const { t } = useLanguage();
   const bodyRef = useRef(null);
@@ -24,11 +26,42 @@ export default function VikaChat() {
     }
   }, [messages, isTyping]);
 
+
   const handleSend = () => {
     if (inputText.trim()) {
       sendMessage(inputText);
       setInputText('');
     }
+  };
+
+  // Dosya yükleme fonksiyonu
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Dosya 5MB\'dan büyük olamaz!');
+      return;
+    }
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('datei', file);
+    // raumId'yi uygun şekilde alın (ör: props veya context ile)
+    const raumId = window.selectedRaumId || '1'; // Örnek: window.selectedRaumId veya uygun şekilde alın
+    try {
+      const res = await fetch(`/api/chat/raum/${raumId}/datei`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        alert('Dosya yüklenemedi!');
+      }
+      // Başarılıysa SignalR ile mesaj otomatik gelir
+    } catch (err) {
+      alert('Yükleme hatası: ' + err.message);
+    }
+    setUploading(false);
+    e.target.value = '';
   };
 
   const handleKeyDown = (e) => {
@@ -83,14 +116,27 @@ export default function VikaChat() {
 
         {messages.map((msg, idx) => (
           <div key={idx} className={`vika-message ${msg.role} ${msg.isError ? 'error' : ''}`}>
-            {msg.role === 'user' ? (
-              <div>{msg.content}</div>
-            ) : (
-              <div className="vika-markdown-body">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {msg.content}
-                </ReactMarkdown>
+            {msg.istDatei ? (
+              <div>
+                {msg.dateiTyp && msg.dateiTyp.startsWith('image/') ? (
+                  <img src={msg.dateiPfad} alt={msg.dateiName} style={{ maxWidth: 200, borderRadius: 8 }} />
+                ) : (
+                  <a href={msg.dateiPfad} download target="_blank" rel="noopener noreferrer">
+                    <i className="bi bi-paperclip"></i> {msg.dateiName}
+                  </a>
+                )}
+                <div className="file-meta">
+                  {msg.dateiTyp} · {(msg.dateiGroesse/1024).toFixed(1)} KB
+                </div>
               </div>
+            ) : (
+              msg.role === 'user'
+                ? <div>{msg.content}</div>
+                : <div className="vika-markdown-body">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
             )}
           </div>
         ))}
@@ -115,6 +161,22 @@ export default function VikaChat() {
             onKeyDown={handleKeyDown}
             disabled={isTyping}
           />
+          {/* Dosya yükleme butonu ve gizli input */}
+          <input
+            type="file"
+            style={{ display: 'none' }}
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".pdf,.png,.jpg,.jpeg,.xls,.xlsx,.doc,.docx,.zip,.rar,.txt"
+          />
+          <button
+            className="vika-chat-btn"
+            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+            title="Dosya Ekle"
+            disabled={uploading}
+          >
+            {uploading ? <span className="spinner-border spinner-border-sm"></span> : <i className="bi bi-paperclip"></i>}
+          </button>
           <button
             className={`vika-chat-btn ${inputText.trim() ? 'active' : ''}`}
             onClick={handleSend}
