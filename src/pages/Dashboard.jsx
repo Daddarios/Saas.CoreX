@@ -292,7 +292,11 @@ export default function Dashboard() {
 
   // Saat selamlama
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Guten Morgen' : hour < 18 ? 'Guten Tag' : 'Guten Abend';
+  const greeting = hour < 12
+    ? t('dashboard.goodMorning', 'Good morning')
+    : hour < 18
+      ? t('dashboard.goodAfternoon', 'Good afternoon')
+      : t('dashboard.goodEvening', 'Good evening');
 
   if (loading) {
     return (
@@ -322,7 +326,7 @@ export default function Dashboard() {
             <h1 className="dashboard-greeting">
               {greeting}, <span className="dashboard-username">{user?.vorname || 'Admin'}</span>
             </h1>
-            <p className="dashboard-subtitle">Hier ist Ihr Überblick für heute</p>
+            <p className="dashboard-subtitle">{t('dashboard.todayOverview', "Here's your overview for today")}</p>
           </div>
           <button className="dashboard-refresh-btn" onClick={loadAll}>
             <i className="bi bi-arrow-clockwise" />

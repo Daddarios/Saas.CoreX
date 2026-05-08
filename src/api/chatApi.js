@@ -5,4 +5,7 @@ export const chatApi = {
 
   getNachrichten: (raumId, page = 1, size = 50) =>
     axiosClient.get(`/chat/raum/${raumId}/nachrichten`, { params: { page, size } }),
+
+  getOrCreateDirektChat: (zielBenutzerId) =>
+    axiosClient.post(`/chat/direktchat/${zielBenutzerId}`),
 };

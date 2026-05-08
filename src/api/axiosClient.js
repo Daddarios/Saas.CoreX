@@ -22,6 +22,8 @@ export const setAccessToken = (token) => {
   // Token'ı localStorage'a da kaydet (sayfa yenilemede kaybetmemek için)
   if (token) {
     localStorage.setItem('accessToken', token);
+    // SignalR hook'larının token geldiğini öğrenmesi için event fırlat
+    window.dispatchEvent(new CustomEvent('accessTokenSet'));
   } else {
     localStorage.removeItem('accessToken');
   }
@@ -77,10 +79,34 @@ axiosClient.interceptors.request.use(
     }
 
     // 2️⃣ Mandant ID ekle (multi-tenancy için)
-    const mandantId = localStorage.getItem('mandantId');
-    if (mandantId) {
-      config.headers['X-Mandant-Id'] = mandantId;
+    let mandantId = localStorage.getItem('mandantId');
+    if (!mandantId || mandantId === 'null' || mandantId === 'undefined') {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        if (user) {
+          const candidate =
+            user.mandantId ?? user.MandantId ?? user.mandant_id ??
+            user.tenantId ?? user.TenantId ?? user.mandant?.id ?? user.Mandant?.Id;
+          if (candidate && candidate !== 'null' && candidate !== 'undefined') {
+            mandantId = String(candidate);
+            localStorage.setItem('mandantId', mandantId);
+          } else {
+            console.warn('[axiosClient] No mandantId found in user object:', user);
+          }
+        } else {
+          console.warn('[axiosClient] User object is missing in localStorage.');
+        }
+      } catch (error) {
+        console.error('[axiosClient] Failed to parse user object for mandantId:', error);
+      }
     }
+    
+    // Fallback ekle: Backend Guid bekliyor, 'null' stringi 400 hatası verdirir
+    if (!mandantId || mandantId === 'null' || mandantId === 'undefined') {
+      mandantId = '00000000-0000-0000-0000-000000000000';
+    }
+
+    config.headers['X-Mandant-Id'] = mandantId;
 
     // 3️⃣ Content-Type düzenlemesi (FormData için otomatik, JSON için manuel)
     if (config.data instanceof FormData) {
@@ -117,7 +143,7 @@ const processQueue = (error, token = null) => {
 // Not: /auth/me burada YOK — sayfa yenilemede 401 gelirse refresh denensin
 // ANCAK: /auth/me login olmamış kullanıcıda 401 verir, bu durumda refresh denemeden reject et
 const AUTH_ENDPOINTS = ['/auth/login', '/auth/verify', '/auth/refresh', '/auth/logout'];
-const NO_RETRY_ENDPOINTS = ['/auth/me']; // Bu endpoint'ler için retry YAPMA (user henüz authenticated değil)
+const NO_RETRY_ENDPOINTS = []; // /auth/me artık refresh denesin; /auth/refresh AUTH_ENDPOINTS'te olduğu için döngü oluşmaz
 const isAuthEndpoint = (url) => AUTH_ENDPOINTS.some((endpoint) => url?.includes(endpoint));
 const isNoRetryEndpoint = (url) => NO_RETRY_ENDPOINTS.some((endpoint) => url?.includes(endpoint));
 
@@ -243,5 +269,29 @@ axiosClient.interceptors.response.use(
     }
   }
 );
+
+// SignalR accessTokenFactory için: token varsa direkt döner, yoksa /auth/refresh dener
+// axiosClient DEĞİL fetch kullanılır — interceptor üzerinden circular loop oluşmasın
+export const getOrRefreshToken = async () => {
+  const current = getAccessToken();
+  if (current) return current;
+
+  try {
+    const res = await fetch(`${API_ORIGIN}/api/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include', // httpOnly refresh token cookie
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const newToken = data?.accessToken ?? data?.token ?? null;
+    if (newToken) {
+      setAccessToken(newToken);
+      return newToken;
+    }
+  } catch {
+    // Refresh başarısız — null döner, SignalR bağlantıyı gracefully keser
+  }
+  return null;
+};
 
 export default axiosClient;

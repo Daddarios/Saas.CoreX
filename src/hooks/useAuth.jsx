@@ -3,10 +3,38 @@ import { authApi } from '../api/authApi';
 import { benutzerApi } from '../api/benutzerApi';
 import { setAccessToken } from '../api/axiosClient';
 
+// Backend farklı isimlendirmeler kullanabilir (mandantId / MandantId / mandant_id / tenantId).
+// Hangisi varsa onu döndür ve localStorage'a yaz.
+function pickMandantId(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  return (
+    obj.mandantId ??
+    obj.MandantId ??
+    obj.mandant_id ??
+    obj.tenantId ??
+    obj.TenantId ??
+    obj.mandant?.id ??
+    obj.Mandant?.Id ??
+    null
+  );
+}
+function persistMandantId(obj) {
+  const id = pickMandantId(obj);
+  if (id) {
+    localStorage.setItem('mandantId', String(id));
+    return id;
+  }
+  return null;
+}
+
 // /auth/me bazı backend'lerde bild gibi alanları döndürmez;
 // eksikse /benutzer/{id} endpoint'inden tam profili çekip birleştiririz.
 async function enrichProfile(profile) {
   console.log('[enrichProfile] Starting with profile:', profile?.email, 'has bild:', !!profile?.bild);
+  if (profile && typeof profile === 'object') {
+    console.log('[enrichProfile] Profile keys:', Object.keys(profile));
+    console.log('[enrichProfile] mandant candidate:', pickMandantId(profile));
+  }
   
   // Eğer zaten temel alanlar VE bild varsa, enrichment yapma (gereksiz API çağrısı)
   if (profile?.vorname && profile?.nachname && profile?.bild) {
@@ -21,6 +49,9 @@ async function enrichProfile(profile) {
       const res = await benutzerApi.getById(profile.id);
       const enriched = { ...profile, ...res.data };
       console.log('[enrichProfile] Profile enriched successfully, has bild:', !!enriched.bild);
+      console.log('[enrichProfile] Enriched keys:', Object.keys(enriched).join(', '));
+      console.log('[enrichProfile] FULL ENRICHED OBJECT:', JSON.stringify(enriched, null, 2));
+      console.log('[enrichProfile] Enriched mandant candidate:', pickMandantId(enriched));
       return enriched;
     } catch (err) {
       console.error('[enrichProfile] Failed to fetch full profile:', err);
@@ -64,8 +95,11 @@ export function AuthProvider({ children }) {
         const profile = await enrichProfile(res.data);
         setUser(profile);
         localStorage.setItem('user', JSON.stringify(profile));
-        if (profile.mandantId) localStorage.setItem('mandantId', profile.mandantId);
-        console.log('[useAuth] ✅ User profile fetched from /auth/me:', profile.email, 'has avatar:', !!profile.bild);
+        const mandantId = persistMandantId(profile || userData);
+        if (!mandantId) {
+          console.warn('[useAuth] Warning: mandantId is missing after login. Check backend response.');
+        }
+        console.log('[useAuth] ✅ User profile fetched from /auth/me:', profile.email, 'has avatar:', !!profile.bild, 'mandantId:', pickMandantId(profile));
         return profile;
       } catch (err) {
         console.error('[useAuth] Failed to fetch from /auth/me:', err);
@@ -73,6 +107,11 @@ export function AuthProvider({ children }) {
         const { accessToken: _a, token: _t, ...userInfo } = userData;
         setUser(userInfo);
         localStorage.setItem('user', JSON.stringify(userInfo));
+        const mandantId = persistMandantId(userInfo || userData);
+        if (!mandantId) {
+          console.warn('[useAuth] Warning: mandantId is missing after login. Check backend response.');
+        }
+        console.log('[useAuth] Using fallback user data');
         return userInfo;
       }
     }
@@ -84,20 +123,26 @@ export function AuthProvider({ children }) {
       const userInfo = await enrichProfile(rawInfo);
       setUser(userInfo);
       localStorage.setItem('user', JSON.stringify(userInfo));
-      if (userInfo.mandantId) localStorage.setItem('mandantId', userInfo.mandantId);
-      console.log('[useAuth] ✅ User profile saved successfully:', userInfo.email, 'has avatar:', !!userInfo.bild);
+      const mandantId = persistMandantId(userInfo || userData);
+      if (!mandantId) {
+        console.warn('[useAuth] Warning: mandantId is missing after login. Check backend response.');
+      }
+      console.log('[useAuth] ✅ User profile saved successfully:', userInfo.email, 'has avatar:', !!userInfo.bild, 'mandantId:', pickMandantId(userInfo) || pickMandantId(userData));
       return userInfo;
     }
 
     // Eğer userData'da sadece token/mesaj varsa, profili me endpoint'inden al
-    if (userData.mandantId) localStorage.setItem('mandantId', userData.mandantId);
+    persistMandantId(userData);
     try {
       console.log('[useAuth] No profile data, fetching from /auth/me...');
       const res = await authApi.me();
       const profile = await enrichProfile(res.data);
       setUser(profile);
       localStorage.setItem('user', JSON.stringify(profile));
-      if (profile.mandantId) localStorage.setItem('mandantId', profile.mandantId);
+      const mandantId = persistMandantId(profile || userData);
+      if (!mandantId) {
+        console.warn('[useAuth] Warning: mandantId is missing after login. Check backend response.');
+      }
       console.log('[useAuth] ✅ User profile fetched and saved:', profile.email, 'has avatar:', !!profile.bild);
       return profile;
     } catch (err) {
@@ -119,6 +164,9 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user');
     localStorage.removeItem('mandantId');
     localStorage.removeItem('accessToken');
+    // Sohbet gecmisini temizle (kullanici degisebilir)
+    try { localStorage.removeItem('vika.chat.messages'); } catch { /* ignore */ }
+    window.dispatchEvent(new CustomEvent('vika:clearChat'));
   }, []);
 
   // Uygulama açıldığında session'ı doğrula

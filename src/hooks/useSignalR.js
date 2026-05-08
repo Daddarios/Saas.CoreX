@@ -1,67 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
-import { getAccessToken, API_ORIGIN } from '../api/axiosClient';
+import { getOrRefreshToken, API_ORIGIN } from '../api/axiosClient';
 
 const BASE_URL = API_ORIGIN;
 
 export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
   const connectionRef = useRef(null);
-  const startingRef = useRef(false);
-  const handlersRef = useRef(onReceive);
   const registeredHandlersRef = useRef({});
   const [connected, setConnected] = useState(false);
   const [status, setStatus] = useState('disconnected');
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
 
-  handlersRef.current = onReceive;
-
-  const startConnection = useCallback(async (connection, cancelledRef) => {
-    if (!connection || connection.state === 'Connected') return;
-    if (startingRef.current) return;
-
-    // Auth token yoksa başlatma
-    const token = getAccessToken();
-    if (!token) {
-      setStatus('disconnected');
-      return;
-    }
-
-    startingRef.current = true;
-    let attempts = 0;
-    while (attempts < 5) {
-      if (cancelledRef?.current) {
-        startingRef.current = false;
-        return;
-      }
-      try {
-        setStatus('connecting');
-        await connection.start();
-        setConnected(true);
-        setStatus('connected');
-        setReconnectAttempt(0);
-        startingRef.current = false;
-        return;
-      } catch {
-        attempts += 1;
-        setReconnectAttempt(attempts);
-        setStatus('reconnecting');
-        const waitMs = Math.min(1000 * attempts, 4000);
-        await new Promise((resolve) => {
-          setTimeout(resolve, waitMs);
-        });
-      }
-    }
-
-    startingRef.current = false;
-    setConnected(false);
-    setStatus('disconnected');
-  }, []);
-
   useEffect(() => {
-    // StrictMode guard — önceki connection varsa yeni oluşturma
     if (connectionRef.current) return;
 
     const cancelled = { current: false };
+    let startPromise = null;
 
     let mandantId = localStorage.getItem('mandantId');
     if (!mandantId || mandantId === 'null' || mandantId === 'undefined') {
@@ -71,12 +25,12 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
 
     const connection = new HubConnectionBuilder()
       .withUrl(urlWithParams, {
+        accessTokenFactory: () => getOrRefreshToken(),
         withCredentials: true,
-        accessTokenFactory: () => getAccessToken() ?? undefined,
         transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
       })
       .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
+      .configureLogging(LogLevel.Error)
       .build();
 
     connection.onclose(() => {
@@ -97,20 +51,48 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
 
     connectionRef.current = connection;
 
-    if (autoStart) {
-      startConnection(connection, cancelled);
-    }
+    const tryStart = async () => {
+      if (cancelled.current || connection.state !== 'Disconnected') return;
+      try {
+        setStatus('connecting');
+        startPromise = connection.start();
+        await startPromise;
+        if (cancelled.current) {
+          await connection.stop().catch(() => {});
+          return;
+        }
+        setConnected(true);
+        setStatus('connected');
+        setReconnectAttempt(0);
+      } catch (err) {
+        if (!cancelled.current) {
+          setConnected(false);
+          setStatus('disconnected');
+        }
+      } finally {
+        startPromise = null;
+      }
+    };
+
+    if (autoStart) tryStart();
+
+    const handleTokenSet = () => {
+      if (connectionRef.current?.state === 'Disconnected') tryStart();
+    };
+    window.addEventListener('accessTokenSet', handleTokenSet);
 
     return () => {
       cancelled.current = true;
+      window.removeEventListener('accessTokenSet', handleTokenSet);
       Object.entries(registeredHandlersRef.current).forEach(([method, handler]) => {
         connection.off(method, handler);
       });
       connectionRef.current = null;
-      startingRef.current = false;
-      connection.stop().catch(console.error);
+      Promise.resolve(startPromise)
+        .catch(() => {})
+        .finally(() => connection.stop().catch(() => {}));
     };
-  }, [autoStart, hubPath, startConnection]);
+  }, [autoStart, hubPath]);
 
   useEffect(() => {
     const connection = connectionRef.current;
@@ -137,7 +119,17 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
   };
 
   const reconnect = async () => {
-    await startConnection(connectionRef.current, { current: false });
+    const connection = connectionRef.current;
+    if (!connection || connection.state !== 'Disconnected') return;
+    try {
+      setStatus('connecting');
+      await connection.start();
+      setConnected(true);
+      setStatus('connected');
+    } catch {
+      setConnected(false);
+      setStatus('disconnected');
+    }
   };
 
   return {

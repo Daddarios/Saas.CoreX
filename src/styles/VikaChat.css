@@ -1,125 +1,238 @@
+/* ============================================================
+   ViKA AI Chat — Premium RAG Assistant UI
+   Inspired by: Claude (Anthropic), ChatGPT, Perplexity, Notion AI
+   Design tokens scoped under .vika-chat-container
+   ============================================================ */
+
 .vika-chat-container {
+  /* Color tokens — AI-grade palette */
+  --vk-bg:           #ffffff;
+  --vk-bg-soft:      #fafafa;
+  --vk-bg-elevated:  #ffffff;
+  --vk-surface:      #f7f7f8;
+  --vk-border:       #e5e7eb;
+  --vk-border-soft:  #f0f0f1;
+  --vk-text:         #0f172a;
+  --vk-text-muted:   #64748b;
+  --vk-text-faint:   #94a3b8;
+
+  --vk-accent:       #6366f1;            /* indigo-500 */
+  --vk-accent-2:     #0ea5e9;            /* sky-500   */
+  --vk-accent-3:     #a855f7;            /* purple-500 */
+  --vk-accent-grad:  linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #a855f7 100%);
+
+  --vk-online:       #10b981;
+  --vk-warn:         #f59e0b;
+  --vk-error:        #ef4444;
+
+  --vk-radius-lg:    16px;
+  --vk-radius-md:    12px;
+  --vk-radius-sm:    8px;
+
+  --vk-shadow-sm:    0 1px 2px rgba(15, 23, 42, 0.04);
+  --vk-shadow-md:    0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --vk-shadow-lg:    0 24px 48px -16px rgba(15, 23, 42, 0.18), 0 8px 16px -8px rgba(15, 23, 42, 0.10);
+
+  --vk-font:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
   display: flex;
   flex-direction: column;
-  height: 500px;
-  max-height: 80vh;
-  background: var(--bg-surface, rgba(255, 255, 255, 0.85));
-  backdrop-filter: blur(12px);
-  border-radius: 16px;
-  box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.05);
+  height: 540px;
+  max-height: 78vh;
+  background: var(--vk-bg);
+  border: 1px solid var(--vk-border);
+  border-radius: var(--vk-radius-lg);
+  box-shadow: var(--vk-shadow-lg);
   overflow: hidden;
-  font-family: 'Inter', sans-serif;
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.3));
-  transition: all 0.3s ease;
+  font-family: var(--vk-font);
+  color: var(--vk-text);
+  isolation: isolate;
 }
 
-.vika-chat-container:hover {
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 5px 15px rgba(0,0,0,0.05);
-}
-
+/* ============================================================
+   HEADER — minimalist with subtle gradient accent bar
+   ============================================================ */
 .vika-chat-header {
-  background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
-  background-size: 200% 200%;
-  animation: gradientFlow 5s ease infinite;
-  color: white;
-  padding: 16px 20px;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--vk-bg);
+  border-bottom: 1px solid var(--vk-border-soft);
+}
+
+.vika-chat-header::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: var(--vk-accent-grad);
+  opacity: 0.85;
 }
 
 .vika-header-info {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
+/* Avatar — gradient orb with subtle inner glow */
 .vika-avatar-container {
   position: relative;
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--vk-accent-grad);
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 10px -2px rgba(99, 102, 241, 0.35);
 }
 
 .vika-avatar-icon {
-  font-size: 1.2rem;
-  color: white;
+  font-size: 1.05rem;
+  color: #ffffff;
+  line-height: 1;
 }
 
 .vika-status-dot {
   position: absolute;
-  bottom: 0;
-  right: 0;
+  bottom: -2px;
+  right: -2px;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid #8b5cf6;
+  border: 2px solid var(--vk-bg);
+  background: var(--vk-text-faint);
 }
-
-.vika-status-dot.connected { background: #10b981; }
-.vika-status-dot.connecting { background: #f59e0b; }
-.vika-status-dot.disconnected { background: #ef4444; }
+.vika-status-dot.connected    { background: var(--vk-online); }
+.vika-status-dot.connecting   { background: var(--vk-warn); }
+.vika-status-dot.disconnected { background: var(--vk-error); }
 
 .vika-header-text {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vika-title-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vika-title-sep {
+  color: var(--vk-text-faint);
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 .vika-title {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--vk-text);
+  line-height: 1.2;
 }
 
 .vika-subtitle {
-  font-size: 0.75rem;
-  opacity: 0.9;
+  margin: 0;
+  font-size: 0.78rem;
   font-weight: 500;
+  color: var(--vk-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0px;
+  line-height: 1.3;
+}
+.vika-subtitle i {
+  font-size: 0.95rem;
+  background: var(--vk-accent-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.vika-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  background: var(--vk-surface);
+  color: var(--vk-text-muted);
+  border: 1px solid var(--vk-border-soft);
+  width: fit-content;
+}
+.vika-status-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--vk-text-faint);
+}
+.vika-status-pill.connected    { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
+.vika-status-pill.connected    .vika-status-pill-dot { background: var(--vk-online); animation: vk-pulse 2s ease-in-out infinite; }
+.vika-status-pill.connecting   { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+.vika-status-pill.connecting   .vika-status-pill-dot { background: var(--vk-warn); }
+.vika-status-pill.disconnected { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
+.vika-status-pill.disconnected .vika-status-pill-dot { background: var(--vk-error); }
+
+@keyframes vk-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
 }
 
 .vika-options-btn {
+  flex-shrink: 0;
   background: transparent;
   border: none;
-  color: white;
-  font-size: 1.2rem;
+  color: var(--vk-text-muted);
+  font-size: 1.05rem;
   cursor: pointer;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  display: flex;
+  border-radius: var(--vk-radius-sm);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: background 0.15s ease, color 0.15s ease;
 }
+.vika-options-btn:hover { background: var(--vk-surface); color: var(--vk-text); }
 
-.vika-options-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-@keyframes gradientFlow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
+/* ============================================================
+   BODY — message stream
+   ============================================================ */
 .vika-chat-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  background: var(--bg-body, rgba(248, 250, 252, 0.7));
+  gap: 14px;
+  background: var(--vk-bg-soft);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
 }
+.vika-chat-body::-webkit-scrollbar          { width: 6px; }
+.vika-chat-body::-webkit-scrollbar-track    { background: transparent; }
+.vika-chat-body::-webkit-scrollbar-thumb    { background: rgba(148, 163, 184, 0.35); border-radius: 3px; }
+.vika-chat-body::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.6); }
 
+/* Empty state */
 .vika-empty-state {
   display: flex;
   flex-direction: column;
@@ -127,211 +240,524 @@
   justify-content: center;
   height: 100%;
   text-align: center;
-  color: var(--text-muted, #64748b);
-  animation: fadeIn 0.5s ease-out;
-  padding: 20px;
+  padding: 24px;
+  animation: vk-fade-in 0.4s ease-out;
 }
-
 .vika-empty-icon-wrapper {
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
-  border-radius: 50%;
-  display: flex;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--vk-accent-grad);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
-  color: #8b5cf6;
-  font-size: 2rem;
+  color: #ffffff;
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 8px 20px -4px rgba(99, 102, 241, 0.4);
 }
-
 .vika-empty-title {
-  margin: 0 0 8px 0;
-  color: var(--text-primary, #1e293b);
-  font-size: 1.2rem;
+  margin: 0 0 6px;
+  font-size: 1.05rem;
   font-weight: 600;
+  color: var(--vk-text);
+  letter-spacing: -0.01em;
 }
-
 .vika-empty-desc {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  color: var(--vk-text-muted);
+  max-width: 280px;
+  line-height: 1.5;
 }
 
+/* ============================================================
+   MESSAGES
+   - User: indigo gradient bubble, right-aligned
+   - Bot:  flat surface, left-aligned (Claude/ChatGPT style)
+   ============================================================ */
 .vika-message {
-  max-width: 80%;
-  padding: 12px 18px;
-  border-radius: 16px;
-  font-size: 0.95rem;
+  max-width: 85%;
+  font-size: 0.875rem;
   line-height: 1.6;
-  animation: messageSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  word-break: break-word;
-  position: relative;
+  word-wrap: break-word;
+  animation: vk-message-in 0.25s ease-out;
 }
 
 .vika-message.user {
   align-self: flex-end;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  border-bottom-right-radius: 4px;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  padding: 10px 14px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--vk-accent-grad);
+  color: #ffffff;
+  box-shadow: 0 4px 12px -4px rgba(99, 102, 241, 0.4);
 }
 
 .vika-message.bot {
   align-self: flex-start;
-  background: var(--bg-surface, rgba(255, 255, 255, 0.9));
-  color: var(--text-primary, #1e293b);
-  border: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-  backdrop-filter: blur(10px);
+  padding: 10px 14px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--vk-bg-elevated);
+  color: var(--vk-text);
+  border: 1px solid var(--vk-border-soft);
+  box-shadow: var(--vk-shadow-sm);
 }
 
 .vika-message.error {
-  border-color: #ef4444;
-  color: #ef4444;
-  background: var(--bg-error, #fef2f2);
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
 }
 
+/* ============================================================
+   TYPING INDICATOR — Claude-style shimmer wave
+   "ViKA •••" — left-to-right light sweep across text + dots
+   ============================================================ */
 .vika-typing {
   align-self: flex-start;
-  padding: 8px 16px;
-  color: var(--text-muted, #64748b);
-  font-size: 0.95rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 6px 4px 6px 0;
+  font-size: 1rem;
+  color: var(--vk-text-muted);
+  line-height: 1;
 }
 
-.vika-typing i {
-  color: #8b5cf6;
+.vika-typing > i {
   font-size: 1.1rem;
-  animation: pulseIcon 2s infinite ease-in-out;
+  line-height: 1;
+  display: inline-flex;
+  align-items: flex-end;
+  align-self: flex-end;
+  margin-bottom: -2px;
+  background: linear-gradient(135deg, #0e7490 0%, #4338ca 55%, #6d28d9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.vika-typing-name {
+  font-size: 0.85rem;
+  font-weight: 650;
+  margin-left: -5px;
+  letter-spacing: 0.09em;
+  /* Base color is dark — shimmer adds the bright sweep */
+  background-image: linear-gradient(
+    100deg,
+    #1e293b 0%,
+    #1e293b 35%,
+    #818cf8 50%,
+    #1e293b 65%,
+    #1e293b 100%
+  );
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: vk-shimmer 1.8s linear infinite;
 }
 
 .typing-dots {
-  display: flex;
-  margin-left: 2px;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: -6px;
+  margin-bottom: 2px;
 }
 .typing-dots span {
-  animation: typingBounce 1.4s infinite ease-in-out both;
-  font-size: 1.2rem;
-  line-height: 0.5;
-  color: #8b5cf6;
+  display: inline-block;
+  width: 1.5px;
+  height: 1.5px;
+  border-radius: 50%;
+  background: var(--vk-text-faint);
+  /* Each dot lights up in sequence — light wave */
+  animation: vk-dot-wave 1.2s ease-in-out infinite;
+  font-size: 0;
 }
-.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
-.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
-.typing-dots span:nth-child(3) { animation-delay: 0s; }
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.30s; }
 
-@keyframes typingBounce {
-  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-  40% { transform: translateY(-3px); opacity: 1; }
+@keyframes vk-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
-@keyframes pulseIcon {
-  0%, 100% { opacity: 0.7; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.1); }
+@keyframes vk-dot-wave {
+  0%, 60%, 100% {
+    background: var(--vk-text-faint);
+    box-shadow: 0 0 0 rgba(99, 102, 241, 0);
+    transform: scale(1);
+  }
+  30% {
+    background: #6366f1;
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.7);
+    transform: scale(1.25);
+  }
 }
 
+[data-theme="dark"] .vika-typing-name,
+.dark .vika-typing-name {
+  background-image: linear-gradient(
+    100deg,
+    rgba(148, 163, 184, 0.5) 0%,
+    rgba(148, 163, 184, 0.5) 35%,
+    #ffffff 50%,
+    rgba(148, 163, 184, 0.5) 65%,
+    rgba(148, 163, 184, 0.5) 100%
+  );
+  background-size: 250% 100%;
+}
+
+/* ============================================================
+   INPUT AREA
+   ============================================================ */
 .vika-chat-input-area {
-  padding: 16px;
-  background: var(--bg-surface, rgba(255, 255, 255, 0.95));
-  border-top: 1px solid var(--border-color, rgba(226, 232, 240, 0.8));
-  backdrop-filter: blur(10px);
+  padding: 12px 14px 14px;
+  background: var(--vk-bg);
+  border-top: 1px solid var(--vk-border-soft);
 }
 
 .vika-input-wrapper {
   display: flex;
-  gap: 12px;
   align-items: center;
-  background: var(--bg-input, rgba(248, 250, 252, 0.8));
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 30px;
-  padding: 4px 4px 4px 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  background: var(--vk-surface);
+  border: 1px solid var(--vk-border);
+  border-radius: var(--vk-radius-md);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
-
 .vika-input-wrapper:focus-within {
-  border-color: #8b5cf6;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+  background: var(--vk-bg);
+  border-color: var(--vk-accent);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 .vika-chat-input {
   flex: 1;
-  padding: 10px 0;
   border: none;
   outline: none;
-  font-size: 0.95rem;
   background: transparent;
-  color: var(--text-primary, #1e293b);
+  font-family: var(--vk-font);
+  font-size: 0.875rem;
+  color: var(--vk-text);
+  padding: 8px 0;
+  min-width: 0;
 }
+.vika-chat-input::placeholder { color: var(--vk-text-faint); }
+.vika-chat-input:disabled { opacity: 0.5; }
 
 .vika-chat-btn {
-  background: #cbd5e1;
-  color: white;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
   border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  border-radius: var(--vk-radius-sm);
+  background: var(--vk-border);
+  color: #ffffff;
   cursor: not-allowed;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.vika-chat-btn.active {
+  background: var(--vk-accent-grad);
+  cursor: pointer;
+  box-shadow: 0 4px 10px -2px rgba(99, 102, 241, 0.4);
+}
+.vika-chat-btn.active:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -2px rgba(99, 102, 241, 0.5); }
+.vika-chat-btn.active:active { transform: translateY(0); }
+
+/* ============================================================
+   MARKDOWN — inside .vika-message.bot
+   ============================================================ */
+.vika-markdown-body { margin: 0; }
+.vika-markdown-body > *:first-child { margin-top: 0; }
+.vika-markdown-body > *:last-child  { margin-bottom: 0; }
+
+.vika-markdown-body p { margin: 0 0 8px; }
+.vika-markdown-body strong { font-weight: 600; color: var(--vk-text); }
+
+.vika-markdown-body ul,
+.vika-markdown-body ol { padding-left: 20px; margin: 6px 0 8px; }
+.vika-markdown-body li { margin: 2px 0; }
+
+.vika-markdown-body a {
+  color: var(--vk-accent);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+  transition: border-color 0.15s ease;
+}
+.vika-markdown-body a:hover { border-bottom-color: var(--vk-accent); }
+
+.vika-markdown-body code {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82em;
+  background: rgba(15, 23, 42, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #1e293b;
+}
+.vika-message.user .vika-markdown-body code {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.vika-markdown-body pre {
+  margin: 8px 0;
+  padding: 12px 14px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+.vika-markdown-body pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+.vika-markdown-body blockquote {
+  margin: 8px 0;
+  padding: 4px 12px;
+  border-left: 3px solid var(--vk-accent);
+  color: var(--vk-text-muted);
+  background: rgba(99, 102, 241, 0.04);
+  border-radius: 0 6px 6px 0;
+}
+
+.vika-markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 0.82rem;
+}
+.vika-markdown-body th,
+.vika-markdown-body td {
+  border: 1px solid var(--vk-border);
+  padding: 6px 10px;
+  text-align: left;
+}
+.vika-markdown-body th { background: var(--vk-surface); font-weight: 600; }
+
+.vika-markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--vk-border-soft);
+  margin: 12px 0;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes vk-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vk-message-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vk-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-4px); opacity: 1; }
+}
+@keyframes vk-pulse-icon {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.08); }
+}
+
+/* ============================================================
+   DARK MODE — auto-adapts when [data-theme="dark"] is on parent
+   ============================================================ */
+[data-theme="dark"] .vika-chat-container,
+.dark .vika-chat-container {
+  --vk-bg:           #0f172a;
+  --vk-bg-soft:      #0b1222;
+  --vk-bg-elevated:  #1e293b;
+  --vk-surface:      #1e293b;
+  --vk-border:       #334155;
+  --vk-border-soft:  #1e293b;
+  --vk-text:         #f1f5f9;
+  --vk-text-muted:   #94a3b8;
+  --vk-text-faint:   #64748b;
+}
+[data-theme="dark"] .vika-message.user,
+.dark .vika-message.user {
+  color: #ffffff;
+}
+[data-theme="dark"] .vika-markdown-body code,
+.dark .vika-markdown-body code {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 480px) {
+  .vika-chat-container { height: 100vh; max-height: 100vh; border-radius: 0; border: none; }
+  .vika-message { max-width: 92%; }
+}
+
+/* ============================================================
+   FLOATING ACTION BUTTON (FAB) — premium AI orb
+   ============================================================ */
+.vika-fab-wrapper {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+}
+
+.vika-fab-panel {
+  position: absolute;
+  bottom: 76px;
+  right: 0;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  border-radius: 16px;
+  transform-origin: bottom right;
+  opacity: 0;
+  transform: translateY(10px) scale(0.96);
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.22s;
+}
+.vika-fab-panel.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  visibility: visible;
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0s;
+}
+
+.vika-fab {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.vika-fab:hover { transform: translateY(-2px) scale(1.04); }
+.vika-fab:active { transform: translateY(0) scale(0.98); }
+
+/* Outer animated halo (soft glow) */
+.vika-fab-halo {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #0ea5e9, #6366f1, #a855f7, #ec4899, #6366f1, #0ea5e9
+  );
+  filter: blur(14px);
+  opacity: 0.55;
+  z-index: -2;
+  animation: vk-fab-spin 6s linear infinite;
+}
+
+/* Conic rotating ring (visible accent border) */
+.vika-fab-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #0ea5e9, #6366f1, #a855f7, #ec4899, #0ea5e9
+  );
+  z-index: -1;
+  animation: vk-fab-spin 4s linear infinite;
+}
+
+/* Inner core (actual button surface) */
+.vika-fab-core {
+  position: relative;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.18), transparent 55%),
+    linear-gradient(140deg, #0b1226 0%, #1e1b4b 50%, #2e1065 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  color: #ffffff;
+  font-size: 22px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.25),
+    0 12px 28px -8px rgba(99, 102, 241, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.25);
+  transition: box-shadow 0.25s ease;
+}
+.vika-fab-core i {
+  background: linear-gradient(135deg, #67e8f9 0%, #c4b5fd 50%, #f5d0fe 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 6px rgba(103, 232, 249, 0.6));
 }
 
-.vika-chat-btn.active {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+.vika-fab:hover .vika-fab-core {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.25),
+    0 18px 36px -10px rgba(99, 102, 241, 0.65),
+    0 6px 14px -2px rgba(168, 85, 247, 0.35);
 }
 
-.vika-chat-btn.active:hover {
-  transform: scale(1.1) rotate(-10deg);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+/* Status pulse dot — signals active AI */
+.vika-fab-pulse-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid #0b1226;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: vk-fab-pulse 2s ease-in-out infinite;
+  z-index: 1;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Open state — flatter, more contained */
+.vika-fab.is-open .vika-fab-halo { opacity: 0.3; animation-duration: 12s; }
+.vika-fab.is-open .vika-fab-ring { animation-duration: 8s; }
+.vika-fab.is-open .vika-fab-core i {
+  background: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+  filter: none;
+  font-size: 18px;
 }
 
-@keyframes messageSlideIn {
-  0% { opacity: 0; transform: translateY(20px) scale(0.9); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes vk-fab-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes vk-fab-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
 }
 
-/* Markdown Styles */
-.vika-markdown-body {
-  margin: 0;
-}
-.vika-markdown-body p {
-  margin-bottom: 8px;
-}
-.vika-markdown-body p:last-child {
-  margin-bottom: 0;
-}
-.vika-markdown-body pre {
-  background: var(--bg-panel, #1e293b);
-  color: var(--text-primary, #e2e8f0);
-  padding: 12px;
-  border-radius: 8px;
-  overflow-x: auto;
-  font-size: 0.85rem;
-  margin: 8px 0;
-}
-.vika-markdown-body code {
-  background: rgba(var(--text-primary-rgb, 0,0,0), 0.05);
-  padding: 2px 4px;
-  border-radius: 4px;
-  font-family: monospace;
-}
-.vika-message.user .vika-markdown-body code {
-  background: rgba(255,255,255,0.2);
-}
-.vika-markdown-body ul, .vika-markdown-body ol {
-  padding-left: 20px;
-  margin: 8px 0;
+@media (prefers-reduced-motion: reduce) {
+  .vika-fab-halo,
+  .vika-fab-ring,
+  .vika-fab-pulse-dot { animation: none; }
 }

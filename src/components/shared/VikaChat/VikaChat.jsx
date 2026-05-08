@@ -43,14 +43,25 @@ export default function VikaChat() {
       <div className="vika-chat-header">
         <div className="vika-header-info">
           <div className="vika-avatar-container">
-            <i className="bi bi-robot vika-avatar-icon"></i>
+            <i className="bi bi-robot vika-avatar-icon "></i>
             <span className={`vika-status-dot ${status}`}></span>
           </div>
           <div className="vika-header-text">
-            <h3 className="vika-title">ViKA</h3>
-            <p className="text-muted vika-subtitle">AI Service Assistant</p>
-            <span className="vika-subtitle">
-              {status === 'connected' ? t('common.online', 'Çevrimiçi') : status === 'connecting' ? t('common.loading', 'Bağlanıyor...') : t('common.offline', 'Çevrimdışı')}
+            <div className="vika-title-row">
+              <h2 className="vika-title">ViKA</h2>
+              <span className="vika-title-sep">·</span>
+              <p className="vika-subtitle vika-subtitle-primary">
+                <i className="bi bi-stars me-1"></i>
+                {t('chat.aiAssistant', 'AI Assistant')}
+              </p>
+            </div>
+            <span className={`vika-status-pill ${status}`}>
+              <span className="vika-status-pill-dot"></span>
+              {status === 'connected'
+                ? t('common.online', 'Çevrimiçi')
+                : status === 'connecting'
+                  ? t('common.loading', 'Bağlanıyor...')
+                  : t('common.offline', 'Çevrimdışı')}
             </span>
           </div>
         </div>
@@ -86,7 +97,7 @@ export default function VikaChat() {
         {isTyping && (
           <div className="vika-typing">
             <i className="bi bi-robot"></i>
-            <span>{t('chat.vikaTyping', 'VIKA yazıyor')}</span>
+            <span className="vika-typing-name">ViKA</span>
             <span className="typing-dots"><span>.</span><span>.</span><span>.</span></span>
           </div>
         )}
