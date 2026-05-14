@@ -404,6 +404,54 @@
 .chat-send-btn.active:hover  { transform: translateY(-1px); }
 .chat-send-btn.active:active { transform: translateY(0); }
 
+/* File message style */
+.chat-file-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--ch-accent);
+  text-decoration: none;
+}
+.chat-file-msg i { font-size: 0.9rem; }
+.chat-msg-row.own .chat-file-msg { background: rgba(255, 255, 255, 0.2); color: #fff; }
+
+/* File upload button */
+.chat-file-upload-wrapper {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+}
+.chat-file-upload-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--ch-radius-sm);
+  background: var(--ch-border);
+  color: var(--ch-text-muted);
+  cursor: not-allowed;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.chat-file-upload-btn:not(:disabled):hover {
+  background: var(--ch-surface);
+  color: var(--ch-text);
+}
+.chat-file-upload-btn:not(:disabled):active {
+  transform: translateY(0);
+}
+.chat-file-upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .chat-input-hint {
   margin-top: 6px;
   font-size: 0.72rem;

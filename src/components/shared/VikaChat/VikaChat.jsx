@@ -3,16 +3,20 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useVikaChat } from '../../../hooks/useVikaChat';
 import { useLanguage } from '../../../hooks/useLanguage';
+import { getAvatarUrl, API_ORIGIN } from '../../../api/axiosClient';
 import '../../../styles/VikaChat.css';
 
-export default function VikaChat() {
+export default function VikaChat({ raumId }) {
   const [inputText, setInputText] = useState('');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
-  const { messages, isTyping, sendMessage, connected, status } = useVikaChat();
+  const { messages, isTyping, sendMessage, connected, status, clearMessages } = useVikaChat();
   const { t } = useLanguage();
   const bodyRef = useRef(null);
   const inputRef = useRef(null);
+
+  // raumId'yi props'tan al veya fallback
+  const effectiveRaumId = raumId || '00000000-0000-0000-0000-000000000000';
 
   useEffect(() => {
     if (!isTyping && inputRef.current) {
@@ -26,7 +30,6 @@ export default function VikaChat() {
     }
   }, [messages, isTyping]);
 
-
   const handleSend = () => {
     if (inputText.trim()) {
       sendMessage(inputText);
@@ -34,7 +37,6 @@ export default function VikaChat() {
     }
   };
 
-  // Dosya yükleme fonksiyonu
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -45,10 +47,8 @@ export default function VikaChat() {
     setUploading(true);
     const formData = new FormData();
     formData.append('datei', file);
-    // raumId'yi uygun şekilde alın (ör: props veya context ile)
-    const raumId = window.selectedRaumId || '1'; // Örnek: window.selectedRaumId veya uygun şekilde alın
     try {
-      const res = await fetch(`/api/chat/raum/${raumId}/datei`, {
+      const res = await fetch(`${API_ORIGIN}/api/chat/raum/${effectiveRaumId}/datei`, {
         method: 'POST',
         body: formData,
         credentials: 'include'
@@ -56,7 +56,6 @@ export default function VikaChat() {
       if (!res.ok) {
         alert('Dosya yüklenemedi!');
       }
-      // Başarılıysa SignalR ile mesaj otomatik gelir
     } catch (err) {
       alert('Yükleme hatası: ' + err.message);
     }
@@ -76,7 +75,7 @@ export default function VikaChat() {
       <div className="vika-chat-header">
         <div className="vika-header-info">
           <div className="vika-avatar-container">
-            <i className="bi bi-robot vika-avatar-icon "></i>
+            <i className="bi bi-robot vika-avatar-icon"></i>
             <span className={`vika-status-dot ${status}`}></span>
           </div>
           <div className="vika-header-text">
@@ -119,9 +118,9 @@ export default function VikaChat() {
             {msg.istDatei ? (
               <div>
                 {msg.dateiTyp && msg.dateiTyp.startsWith('image/') ? (
-                  <img src={msg.dateiPfad} alt={msg.dateiName} style={{ maxWidth: 200, borderRadius: 8 }} />
+                  <img src={getAvatarUrl(msg.dateiPfad)} alt={msg.dateiName} style={{ maxWidth: 200, borderRadius: 8 }} />
                 ) : (
-                  <a href={msg.dateiPfad} download target="_blank" rel="noopener noreferrer">
+                  <a href={getAvatarUrl(msg.dateiPfad)} download target="_blank" rel="noopener noreferrer">
                     <i className="bi bi-paperclip"></i> {msg.dateiName}
                   </a>
                 )}
@@ -161,7 +160,6 @@ export default function VikaChat() {
             onKeyDown={handleKeyDown}
             disabled={isTyping}
           />
-          {/* Dosya yükleme butonu ve gizli input */}
           <input
             type="file"
             style={{ display: 'none' }}

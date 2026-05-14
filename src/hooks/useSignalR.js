@@ -17,14 +17,8 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
     const cancelled = { current: false };
     let startPromise = null;
 
-    let mandantId = localStorage.getItem('mandantId');
-    if (!mandantId || mandantId === 'null' || mandantId === 'undefined') {
-      mandantId = '00000000-0000-0000-0000-000000000000';
-    }
-    const urlWithParams = `${BASE_URL}${hubPath}?mandantId=${mandantId}`;
-
     const connection = new HubConnectionBuilder()
-      .withUrl(urlWithParams, {
+      .withUrl(`${BASE_URL}${hubPath}`, {
         accessTokenFactory: () => getOrRefreshToken(),
         withCredentials: true,
         transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,

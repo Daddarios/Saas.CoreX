@@ -7,7 +7,7 @@ import { setAccessToken } from '../api/axiosClient';
 // Hangisi varsa onu döndür ve localStorage'a yaz.
 function pickMandantId(obj) {
   if (!obj || typeof obj !== 'object') return null;
-  return (
+  const id = (
     obj.mandantId ??
     obj.MandantId ??
     obj.mandant_id ??
@@ -17,6 +17,9 @@ function pickMandantId(obj) {
     obj.Mandant?.Id ??
     null
   );
+  // Sadece null/undefined olanları filtrele, boş string kabul et (backend'den gelebilir)
+  if (id == null) return null;
+  return id;
 }
 function persistMandantId(obj) {
   const id = pickMandantId(obj);

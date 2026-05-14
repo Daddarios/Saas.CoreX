@@ -6,6 +6,7 @@ import { getAvatarUrl } from '../api/axiosClient';
 import { useSignalR } from '../hooks/useSignalR';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../hooks/useLanguage';
+import axiosClient from '../api/axiosClient';
 import '../styles/Chat.css';
 
 const initials = (text = '') =>
@@ -43,6 +44,7 @@ export default function Chat() {
   const [activeRaum, setActiveRaum] = useState(null);
   const [nachrichten, setNachrichten] = useState([]);
   const [newMsg, setNewMsg] = useState('');
+  const [raumIdForFile, setRaumIdForFile] = useState(null);
   
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -81,14 +83,19 @@ export default function Chat() {
         });
       },
       OnlineUsers: (ids) => {
-        setOnlineUserIds(new Set(Array.isArray(ids) ? ids : []));
+        console.log('[Chat] OnlineUsers event:', ids, 'type:', typeof ids);
+        const normalizedIds = Array.isArray(ids) ? ids.map(String).map(id => id.toLowerCase()) : [];
+        console.log('[Chat] Normalized IDs:', normalizedIds);
+        setOnlineUserIds(new Set(normalizedIds));
       },
       UserJoined: (userId) => {
         if (!userId) return;
+        const uid = String(userId).toLowerCase();
+        console.log('[Chat] UserJoined:', uid);
         setOnlineUserIds((prev) => {
-          if (prev.has(userId)) return prev;
+          if (prev.has(uid)) return prev;
           const next = new Set(prev);
-          next.add(userId);
+          next.add(uid);
           return next;
         });
       },
@@ -104,10 +111,16 @@ export default function Chat() {
       GlobalUserOnlineStatus: (payload) => {
         if (!payload || !payload.userId) return;
         const uid = String(payload.userId).toLowerCase();
+        console.log('[Chat] GlobalUserOnlineStatus:', payload, '->', uid);
         setGlobalOnlineUserIds((prev) => {
           const next = new Set(prev);
-          if (payload.isOnline) next.add(uid);
-          else next.delete(uid);
+          if (payload.isOnline) {
+            next.add(uid);
+            console.log('[Chat] User online:', uid);
+          } else {
+            next.delete(uid);
+            console.log('[Chat] User offline:', uid);
+          }
           return next;
         });
       },
@@ -270,6 +283,22 @@ export default function Chat() {
     }
   };
 
+  const handleFileUpload = async (file) => {
+    if (!file || !raumIdForFile || !connected) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setSendError(t('chat.fileTooLarge', 'File size must be less than 5MB'));
+      return;
+    }
+    const formData = new FormData();
+    formData.append('datei', file);
+    try {
+      await axiosClient.post(`/chat/raum/${raumIdForFile}/datei`, formData);
+      setSendError('');
+    } catch (err) {
+      setSendError(err.response?.data?.message || t('chat.fileUploadError', 'File upload failed'));
+    }
+  };
+
   const canSend = connected && !!activeRaum && newMsg.trim().length > 0;
 
   // Compute room display info — partner avatar/name for 1-1, room name otherwise
@@ -377,6 +406,7 @@ export default function Chat() {
                     className={`chat-room-item ${isActive ? 'active' : ''}`}
                     onClick={() => {
                         setActiveRaum(r);
+                        setRaumIdForFile(r.id);
                         setIsMobileChatOpen(true);
                     }}
                     role="button"
@@ -419,7 +449,10 @@ export default function Chat() {
                   <div
                     key={u.id}
                     className="chat-room-item"
-                    onClick={() => startDirectChat(u.id)}
+                    onClick={() => {
+                        startDirectChat(u.id);
+                        setRaumIdForFile(null);
+                    }}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && startDirectChat(u.id)}
@@ -551,7 +584,15 @@ export default function Chat() {
                         )}
                         <div className="chat-bubble">
                           {!isOwn && <span className="chat-bubble-author">{senderName}</span>}
-                          <div>{n.inhalt}</div>
+                          {n.istDatei ? (
+                            <div className="chat-file-msg">
+                              <a href={getAvatarUrl(n.dateiPfad)} download target="_blank" rel="noopener noreferrer">
+                                <i className="bi bi-paperclip" /> {n.dateiName} ({(n.dateiGroesse / 1024).toFixed(1)} KB)
+                              </a>
+                            </div>
+                          ) : (
+                            <div>{n.inhalt}</div>
+                          )}
                           <span className="chat-bubble-time">{formatTime(n.geschicktAm)}</span>
                         </div>
                       </div>
@@ -597,6 +638,27 @@ export default function Chat() {
                 >
                   <i className="bi bi-send-fill" />
                 </button>
+                {/* Dosya yükleme butonu */}
+                {raumIdForFile && (
+                  <div className="chat-file-upload-wrapper">
+                    <input
+                      type="file"
+                      id="chat-file-input"
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleFileUpload(e.target.files?.[0])}
+                      accept=".pdf,.png,.jpg,.jpeg,.xls,.xlsx,.doc,.docx,.zip,.rar,.txt"
+                    />
+                    <button
+                      type="button"
+                      className="chat-file-upload-btn"
+                      onClick={() => document.getElementById('chat-file-input')?.click()}
+                      title={t('chat.sendFile', 'Send file')}
+                      disabled={!connected}
+                    >
+                      <i className="bi bi-paperclip" />
+                    </button>
+                  </div>
+                )}
               </div>
               {!connected && (
                 <div className="chat-input-hint">

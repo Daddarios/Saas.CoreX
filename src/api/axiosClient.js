@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 // -----------------------------------------------------------------
 // Access token management (localStorage + memory-based token)
@@ -40,6 +41,18 @@ export const getAccessToken = () => {
   return _accessToken;
 };
 
+// JWT'den MandantId claim'ini al
+export const getMandantIdFromToken = () => {
+  const token = getAccessToken();
+  if (!token) return null;
+  try {
+    const decoded = jwtDecode(token);
+    return decoded.MandantId || decoded.mandantId || decoded.mandant_id || null;
+  } catch {
+    return null;
+  }
+};
+
 // -----------------------------------------------------------------
 // Axios instance configuration
 // -----------------------------------------------------------------
@@ -78,34 +91,8 @@ axiosClient.interceptors.request.use(
       console.log(`[axios] Request to ${config.url} WITHOUT token (cookie-based)`);
     }
 
-    // 2️⃣ Mandant ID ekle (multi-tenancy için)
-    let mandantId = localStorage.getItem('mandantId');
-    if (!mandantId || mandantId === 'null' || mandantId === 'undefined') {
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
-        if (user) {
-          const candidate =
-            user.mandantId ?? user.MandantId ?? user.mandant_id ??
-            user.tenantId ?? user.TenantId ?? user.mandant?.id ?? user.Mandant?.Id;
-          if (candidate && candidate !== 'null' && candidate !== 'undefined') {
-            mandantId = String(candidate);
-            localStorage.setItem('mandantId', mandantId);
-          } else {
-            console.warn('[axiosClient] No mandantId found in user object:', user);
-          }
-        } else {
-          console.warn('[axiosClient] User object is missing in localStorage.');
-        }
-      } catch (error) {
-        console.error('[axiosClient] Failed to parse user object for mandantId:', error);
-      }
-    }
-    
-    // Fallback ekle: Backend Guid bekliyor, 'null' stringi 400 hatası verdirir
-    if (!mandantId || mandantId === 'null' || mandantId === 'undefined') {
-      mandantId = '00000000-0000-0000-0000-000000000000';
-    }
-
+    // 2️⃣ Mandant ID ekle (JWT'den al)
+    const mandantId = getMandantIdFromToken() || '00000000-0000-0000-0000-000000000000';
     config.headers['X-Mandant-Id'] = mandantId;
 
     // 3️⃣ Content-Type düzenlemesi (FormData için otomatik, JSON için manuel)
