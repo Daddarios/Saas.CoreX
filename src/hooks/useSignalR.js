@@ -7,6 +7,7 @@ const BASE_URL = API_ORIGIN;
 export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
   const connectionRef = useRef(null);
   const registeredHandlersRef = useRef({});
+  const retryTimerRef = useRef(null);
   const [connected, setConnected] = useState(false);
   const [status, setStatus] = useState('disconnected');
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
@@ -27,9 +28,20 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
       .configureLogging(LogLevel.Error)
       .build();
 
+    const scheduleRetry = () => {
+      if (!autoStart || cancelled.current) return;
+      if (retryTimerRef.current) return;
+      retryTimerRef.current = setTimeout(() => {
+        retryTimerRef.current = null;
+        setReconnectAttempt((n) => n + 1);
+        tryStart();
+      }, 3000);
+    };
+
     connection.onclose(() => {
       setConnected(false);
       setStatus('disconnected');
+      scheduleRetry();
     });
 
     connection.onreconnecting(() => {
@@ -62,6 +74,7 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
         if (!cancelled.current) {
           setConnected(false);
           setStatus('disconnected');
+          scheduleRetry();
         }
       } finally {
         startPromise = null;
@@ -71,12 +84,28 @@ export function useSignalR(hubPath, { onReceive = {}, autoStart = true } = {}) {
     if (autoStart) tryStart();
 
     const handleTokenSet = () => {
-      if (connectionRef.current?.state === 'Disconnected') tryStart();
+      const active = connectionRef.current;
+      if (!active) return;
+      // Access token yenilendiğinde hub baglantisini zorunlu yenile.
+      if (active.state === 'Connected') {
+        active
+          .stop()
+          .catch(() => {})
+          .finally(() => {
+            tryStart();
+          });
+        return;
+      }
+      if (active.state === 'Disconnected') tryStart();
     };
     window.addEventListener('accessTokenSet', handleTokenSet);
 
     return () => {
       cancelled.current = true;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
       window.removeEventListener('accessTokenSet', handleTokenSet);
       Object.entries(registeredHandlersRef.current).forEach(([method, handler]) => {
         connection.off(method, handler);

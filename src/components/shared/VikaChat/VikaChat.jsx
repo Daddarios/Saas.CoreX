@@ -3,13 +3,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useVikaChat } from '../../../hooks/useVikaChat';
 import { useLanguage } from '../../../hooks/useLanguage';
-import { getAvatarUrl, API_ORIGIN } from '../../../api/axiosClient';
+import { getAvatarUrl } from '../../../api/axiosClient';
 import '../../../styles/VikaChat.css';
 
 export default function VikaChat({ raumId }) {
   const [inputText, setInputText] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
   const { messages, isTyping, sendMessage, connected, status, clearMessages } = useVikaChat();
   const { t } = useLanguage();
   const bodyRef = useRef(null);
@@ -35,32 +33,6 @@ export default function VikaChat({ raumId }) {
       sendMessage(inputText);
       setInputText('');
     }
-  };
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Dosya 5MB\'dan büyük olamaz!');
-      return;
-    }
-    setUploading(true);
-    const formData = new FormData();
-    formData.append('datei', file);
-    try {
-      const res = await fetch(`${API_ORIGIN}/api/chat/raum/${effectiveRaumId}/datei`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      if (!res.ok) {
-        alert('Dosya yüklenemedi!');
-      }
-    } catch (err) {
-      alert('Yükleme hatası: ' + err.message);
-    }
-    setUploading(false);
-    e.target.value = '';
   };
 
   const handleKeyDown = (e) => {
@@ -160,21 +132,6 @@ export default function VikaChat({ raumId }) {
             onKeyDown={handleKeyDown}
             disabled={isTyping}
           />
-          <input
-            type="file"
-            style={{ display: 'none' }}
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept=".pdf,.png,.jpg,.jpeg,.xls,.xlsx,.doc,.docx,.zip,.rar,.txt"
-          />
-          <button
-            className="vika-chat-btn"
-            onClick={() => fileInputRef.current && fileInputRef.current.click()}
-            title="Dosya Ekle"
-            disabled={uploading}
-          >
-            {uploading ? <span className="spinner-border spinner-border-sm"></span> : <i className="bi bi-paperclip"></i>}
-          </button>
           <button
             className={`vika-chat-btn ${inputText.trim() ? 'active' : ''}`}
             onClick={handleSend}

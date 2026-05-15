@@ -27,6 +27,47 @@ const formatTime = (iso) => {
 };
 
 const fullName = (u) => [u?.vorname, u?.nachname].filter(Boolean).join(' ').trim();
+const bytesToMb = (bytes) => {
+  const num = Number(bytes || 0);
+  if (!Number.isFinite(num) || num <= 0) return '0.0 MB';
+  return `${(num / (1024 * 1024)).toFixed(1)} MB`;
+};
+const formatDateTime = (iso) => {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString([], {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+};
+const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+const getExtension = (fileName = '') => {
+  const parts = String(fileName).toLowerCase().split('.');
+  return parts.length > 1 ? parts.pop() : '';
+};
+const isImageFile = (file) => {
+  const type = String(file?.dateiTyp || '').toLowerCase();
+  const ext = getExtension(file?.dateiName);
+  if (type.startsWith('image/')) return true;
+  return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
+};
+const getFileIconClass = (file) => {
+  const type = String(file?.dateiTyp || '').toLowerCase();
+  const ext = getExtension(file?.dateiName);
+  if (type.includes('pdf') || ext === 'pdf') return 'bi-file-earmark-pdf';
+  if (type.includes('word') || ['doc', 'docx'].includes(ext)) return 'bi-file-earmark-word';
+  if (type.includes('excel') || type.includes('spreadsheet') || ['xls', 'xlsx', 'csv'].includes(ext)) return 'bi-file-earmark-excel';
+  if (type.includes('video') || ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return 'bi-file-earmark-play';
+  if (type.includes('zip') || ['zip', 'rar', '7z'].includes(ext)) return 'bi-file-earmark-zip';
+  if (type.includes('text') || ['txt', 'md', 'json', 'xml'].includes(ext)) return 'bi-file-earmark-text';
+  return 'bi-file-earmark';
+};
 
 // Other participants (excluding current user)
 const getOtherTeilnehmer = (room, currentUserId) => {
@@ -285,8 +326,8 @@ export default function Chat() {
 
   const handleFileUpload = async (file) => {
     if (!file || !raumIdForFile || !connected) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setSendError(t('chat.fileTooLarge', 'File size must be less than 5MB'));
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setSendError(t('chat.fileTooLarge', 'File size must be less than 100MB'));
       return;
     }
     const formData = new FormData();
@@ -322,6 +363,10 @@ export default function Chat() {
   };
 
   const activeDisplay = activeRaum ? getRoomDisplay(activeRaum) : null;
+
+  useEffect(() => {
+    setRaumIdForFile(activeRaum?.id ?? null);
+  }, [activeRaum?.id]);
 
   // Names of users currently typing in active room
   const typingNames = useMemo(() => {
@@ -566,7 +611,7 @@ export default function Chat() {
                     const isOwn = n.absenderId === user?.id;
                     const senderName =
                       fullName(n.absender) || n.absenderName || t('chat.user');
-                    const bild = n.absender?.bild;
+                    const bild = isOwn ? user?.bild : n.absender?.bild;
                     return (
                       <div key={n.id ?? i} className={`chat-msg-row ${isOwn ? 'own' : ''}`}>
                         {!isOwn && (
@@ -583,18 +628,65 @@ export default function Chat() {
                           </span>
                         )}
                         <div className="chat-bubble">
-                          {!isOwn && <span className="chat-bubble-author">{senderName}</span>}
+                          <span className="chat-bubble-author">
+                            {isOwn ? (fullName(user) || user?.email || t('chat.user')) : senderName}
+                          </span>
                           {n.istDatei ? (
                             <div className="chat-file-msg">
-                              <a href={getAvatarUrl(n.dateiPfad)} download target="_blank" rel="noopener noreferrer">
-                                <i className="bi bi-paperclip" /> {n.dateiName} ({(n.dateiGroesse / 1024).toFixed(1)} KB)
-                              </a>
+                              {isImageFile(n) ? (
+                                <>
+                                  <a className="chat-file-link chat-file-link-image" href={getAvatarUrl(n.dateiPfad)} download={n.dateiName} target="_blank" rel="noopener noreferrer">
+                                    <img
+                                      className="chat-file-image"
+                                      src={getAvatarUrl(n.dateiPfad)}
+                                      alt={n.dateiName}
+                                    />
+                                    <span className="chat-file-meta">{n.dateiName} · {bytesToMb(n.dateiGroesse)}</span>
+                                  </a>
+                                  <a
+                                    className="chat-file-download-btn"
+                                    href={getAvatarUrl(n.dateiPfad)}
+                                    download={n.dateiName}
+                                    title={t('common.download', 'Download')}
+                                  >
+                                    <i className="bi bi-download" />
+                                  </a>
+                                </>
+                              ) : (
+                                <>
+                                  <a className="chat-file-link chat-file-link-doc" href={getAvatarUrl(n.dateiPfad)} download={n.dateiName} target="_blank" rel="noopener noreferrer">
+                                    <i className={`bi ${getFileIconClass(n)} chat-file-icon`} />
+                                    <span className="chat-file-meta">{n.dateiName} · {bytesToMb(n.dateiGroesse)}</span>
+                                  </a>
+                                  <a
+                                    className="chat-file-download-btn"
+                                    href={getAvatarUrl(n.dateiPfad)}
+                                    download={n.dateiName}
+                                    title={t('common.download', 'Download')}
+                                  >
+                                    <i className="bi bi-download" />
+                                  </a>
+                                </>
+                              )}
                             </div>
                           ) : (
                             <div>{n.inhalt}</div>
                           )}
-                          <span className="chat-bubble-time">{formatTime(n.geschicktAm)}</span>
+                          <span className="chat-bubble-time">{formatDateTime(n.geschicktAm)}</span>
                         </div>
+                        {isOwn && (
+                          <span className="chat-msg-avatar-wrap chat-msg-avatar-wrap-own">
+                            {bild ? (
+                              <img
+                                className="chat-msg-avatar chat-msg-avatar-img"
+                                src={getAvatarUrl(bild)}
+                                alt={fullName(user) || user?.email || t('chat.user')}
+                              />
+                            ) : (
+                              <span className="chat-msg-avatar">{initials(fullName(user) || user?.email || t('chat.user'))}</span>
+                            )}
+                          </span>
+                        )}
                       </div>
                     );
                   })}

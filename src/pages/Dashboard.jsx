@@ -242,6 +242,9 @@ export default function Dashboard() {
   const [ticketChartData, setTicketChartData] = useState([]);
   const [recentTickets, setRecentTickets] = useState([]);
   const [allTickets, setAllTickets] = useState([]);
+  const isDark = typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark';
+  const axisTick = { fontSize: 12, fill: isDark ? '#94a3b8' : '#64748b' };
+  const gridStroke = isDark ? 'rgba(148,163,184,0.18)' : 'rgba(100,116,139,0.16)';
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -377,11 +380,11 @@ export default function Dashboard() {
                     <stop offset="95%" stopColor={COLORS.warning} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={axisTick} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend />
+                <Legend verticalAlign="top" height={26} wrapperStyle={{ fontSize: '12px' }} />
                 <Area type="monotone" dataKey="projekte" name="Projekte" stroke={COLORS.primary}
                   fill="url(#gradProjekte)" strokeWidth={2.5} dot={{ r: 4, fill: COLORS.primary }} />
                 <Area type="monotone" dataKey="tickets" name="Tickets" stroke={COLORS.warning}
@@ -408,6 +411,7 @@ export default function Dashboard() {
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
+                <Legend verticalAlign="bottom" height={24} wrapperStyle={{ fontSize: '12px' }} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -424,9 +428,9 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={axisTick} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="count" name={t('dashboard.projekteAnzahl')} radius={[8, 8, 0, 0]} barSize={48}>
                   {chartData.map((entry, idx) => (

@@ -1,12 +1,27 @@
-import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useLanguage } from '../../hooks/useLanguage';
 import VikaChat from '../shared/VikaChat/VikaChat';
+import { useAuth } from '../../hooks/useAuth';
+import { useSignalR } from '../../hooks/useSignalR';
+import { chatApi } from '../../api/chatApi';
+import { getAvatarUrl } from '../../api/axiosClient';
+
+const initials = (text = '') =>
+  text
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('') || '?';
 
 export default function MainLayout() {
   const { t } = useLanguage();
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [themeMode, setThemeMode] = useState(() => {
     if (typeof window === 'undefined') {
       return 'system';
@@ -45,6 +60,66 @@ export default function MainLayout() {
   });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isVikaOpen, setIsVikaOpen] = useState(false);
+  const [chatNotice, setChatNotice] = useState(null);
+  const [chatNoticeKey, setChatNoticeKey] = useState(0);
+
+  const notificationReceive = useMemo(() => ({
+    ReceiveMessage: (message) => {
+      if (!message) return;
+      if (location.pathname === '/chat') return;
+      if (!message.absenderId || !user?.id) return;
+      if (String(message.absenderId) === String(user.id)) return;
+
+      const sender = [message.absender?.vorname, message.absender?.nachname].filter(Boolean).join(' ').trim()
+        || message.absenderName
+        || t('chat.user', 'User');
+      const bild = message.absender?.bild ? getAvatarUrl(message.absender.bild) : null;
+      setChatNotice((prev) => {
+        if (prev && prev.sender === sender) {
+          return { sender, bild: prev.bild || bild, count: (prev.count || 1) + 1 };
+        }
+        return { sender, bild, count: 1 };
+      });
+      setChatNoticeKey((k) => k + 1);
+    },
+  }), [location.pathname, t, user?.id]);
+
+  const isChatPage = location.pathname === '/chat';
+
+  const { connected: chatNoticeConnected, invoke: chatNoticeInvoke } = useSignalR('/hubs/chat', {
+    onReceive: notificationReceive,
+    autoStart: !isChatPage,
+  });
+
+  useEffect(() => {
+    if (isChatPage || !chatNoticeConnected || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await chatApi.getRaeume();
+        const rooms = Array.isArray(res.data) ? res.data : [];
+        for (const room of rooms) {
+          if (cancelled || !room?.id) continue;
+          await chatNoticeInvoke('JoinRoom', String(room.id)).catch(() => {});
+        }
+      } catch {
+        // ignore: notification-only yardımcı akış
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isChatPage, chatNoticeConnected, user?.id]);
+
+  useEffect(() => {
+    if (isChatPage) setChatNotice(null);
+  }, [isChatPage]);
+
+  useEffect(() => {
+    if (!chatNotice) return undefined;
+    const tid = setTimeout(() => setChatNotice(null), 4500);
+    return () => clearTimeout(tid);
+  }, [chatNoticeKey, chatNotice]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -77,6 +152,18 @@ export default function MainLayout() {
     localStorage.setItem('app-layout-style', layoutStyle);
   }, [layoutStyle]);
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    if (!mobileSidebarOpen) return undefined;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileSidebarOpen]);
+
   const handleThemeModeChange = (nextMode) => {
     setThemeMode(nextMode);
     localStorage.setItem('theme-mode', nextMode);
@@ -102,6 +189,16 @@ export default function MainLayout() {
       localStorage.setItem('desktop-sidebar-collapsed', String(next));
       return next;
     });
+  };
+
+  const canOpenVika = Boolean(user?.mandantId && String(user.mandantId).trim());
+  const handleToggleVika = async () => {
+    if (!canOpenVika) {
+      try { await logout(); } catch { /* ignore */ }
+      window.location.href = '/login';
+      return;
+    }
+    setIsVikaOpen(!isVikaOpen);
   };
 
   return (
@@ -155,7 +252,7 @@ export default function MainLayout() {
           <button
             type="button"
             className={`vika-fab ${isVikaOpen ? 'is-open' : ''}`}
-            onClick={() => setIsVikaOpen(!isVikaOpen)}
+            onClick={handleToggleVika}
             aria-label={isVikaOpen ? 'Close ViKA' : 'Open ViKA'}
           >
             <span className="vika-fab-halo" aria-hidden="true"></span>
@@ -166,6 +263,30 @@ export default function MainLayout() {
             {!isVikaOpen && <span className="vika-fab-pulse-dot" aria-hidden="true"></span>}
           </button>
         </div>
+
+        {chatNotice && (
+          <button
+            type="button"
+            className="global-chat-notice"
+            key={chatNoticeKey}
+            onClick={() => {
+              setChatNotice(null);
+              navigate('/chat');
+            }}
+            title={t('chat.open', 'Open chat')}
+          >
+            <span className={`global-chat-notice-dot ${chatNoticeConnected ? 'online' : 'offline'}`} />
+            {chatNotice.bild ? (
+              <img className="global-chat-notice-avatar" src={chatNotice.bild} alt={chatNotice.sender} />
+            ) : (
+              <span className="global-chat-notice-avatar global-chat-notice-avatar-fallback">
+                {initials(chatNotice.sender)}
+              </span>
+            )}
+            <span className="global-chat-notice-text">{chatNotice.sender}</span>
+            <span className="global-chat-notice-count">{chatNotice.count || 1}</span>
+          </button>
+        )}
       </div>
     </div>
   );

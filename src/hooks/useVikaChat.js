@@ -1,8 +1,9 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSignalR } from './useSignalR';
 
 const STORAGE_KEY = 'vika.chat.messages';
 const MAX_PERSIST = 100; // son 100 mesaj saklanir
+const SEND_THROTTLE_MS = 800;
 
 const loadMessages = () => {
   try {
@@ -18,6 +19,13 @@ const loadMessages = () => {
 export function useVikaChat() {
   const [messages, setMessages] = useState(loadMessages);
   const [isTyping, setIsTyping] = useState(false);
+  const [streamingChunk, setStreamingChunk] = useState('');
+  const [lastSendAt, setLastSendAt] = useState(0);
+  const streamingChunkRef = useRef('');
+
+  useEffect(() => {
+    streamingChunkRef.current = streamingChunk;
+  }, [streamingChunk]);
 
   // Mesajlari localStorage'a yaz (oturum boyunca kalsin, logout'ta temizlenir)
   useEffect(() => {
@@ -39,24 +47,18 @@ export function useVikaChat() {
 
   const onReceive = useMemo(() => ({
     VikaAntwortChunk: (chunk) => {
-       setMessages(prev => {
-          const newMessages = [...prev];
-          const lastIndex = newMessages.length - 1;
-          if (lastIndex >= 0 && newMessages[lastIndex].role === 'bot') {
-             newMessages[lastIndex] = {
-               ...newMessages[lastIndex],
-               content: newMessages[lastIndex].content + chunk
-             };
-          } else {
-             newMessages.push({ role: 'bot', content: chunk });
-          }
-          return newMessages;
-       });
+       setStreamingChunk(prev => prev + (chunk ?? ''));
     },
     VikaAntwortFertig: () => {
+       const finalChunk = streamingChunkRef.current;
+       if (finalChunk) {
+         setMessages(prev => [...prev, { role: 'bot', content: finalChunk }]);
+         setStreamingChunk('');
+       }
        setIsTyping(false);
     },
     VikaFehler: (errorMsg) => {
+       setStreamingChunk('');
        setMessages(prev => [...prev, { role: 'bot', content: `**Hata:** ${errorMsg}`, isError: true }]);
        setIsTyping(false);
     },
@@ -67,8 +69,26 @@ export function useVikaChat() {
 
   const { invoke, connected, status } = useSignalR('/hubs/vika', { onReceive, autoStart: true });
 
+  // Reconnect/yeniden baglanma durumunda yarim kalan chunk state'ini temizle.
+  useEffect(() => {
+    if (status === 'reconnecting' || status === 'disconnected') {
+      setStreamingChunk('');
+      setIsTyping(false);
+    }
+  }, [status]);
+
   const sendMessage = useCallback(async (text) => {
      if (!text.trim()) return;
+
+     const now = Date.now();
+     if (now - lastSendAt < SEND_THROTTLE_MS) {
+       setMessages(prev => [...prev, {
+         role: 'bot',
+         content: '**Hata:** Çok hızlı mesaj gönderiyorsunuz. Lütfen kısa süre bekleyin.',
+         isError: true
+       }]);
+       return;
+     }
      
      if (!connected) {
        setMessages(prev => [...prev, 
@@ -79,6 +99,7 @@ export function useVikaChat() {
      }
 
      setMessages(prev => [...prev, { role: 'user', content: text }]);
+     setLastSendAt(now);
      setIsTyping(true);
      try {
        await invoke('FrageStellen', text);
@@ -86,7 +107,7 @@ export function useVikaChat() {
        setIsTyping(false);
        setMessages(prev => [...prev, { role: 'bot', content: `**Bağlantı Hatası:** ${err.message}`, isError: true }]);
      }
-  }, [invoke, connected]);
+  }, [invoke, connected, lastSendAt]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

@@ -37,8 +37,8 @@
 
   display: flex;
   flex-direction: column;
-  height: 540px;
-  max-height: 78vh;
+  height: min(500px, calc(100vh - 96px));
+  max-height: calc(100vh - 96px);
   background: var(--vk-bg);
   border: 1px solid var(--vk-border);
   border-radius: var(--vk-radius-lg);
@@ -614,28 +614,32 @@
    ============================================================ */
 .vika-fab-wrapper {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  top: 50%;
+  bottom: auto;
+  right: 8px;
+  transform: translateY(-50%);
   z-index: 9999;
 }
 
 .vika-fab-panel {
   position: absolute;
-  bottom: 76px;
-  right: 0;
-  width: 380px;
+  top: 50%;
+  bottom: auto;
+  right: 72px;
+  width: 350px;
   max-width: calc(100vw - 32px);
   border-radius: 16px;
-  transform-origin: bottom right;
+  max-height: calc(100vh - 24px);
+  transform-origin: center right;
   opacity: 0;
-  transform: translateY(10px) scale(0.96);
+  transform: translateY(-50%) translateX(10px) scale(0.96);
   pointer-events: none;
   visibility: hidden;
   transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.22s;
 }
 .vika-fab-panel.is-open {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateY(-50%) translateX(0) scale(1);
   pointer-events: auto;
   visibility: visible;
   transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0s;
@@ -654,6 +658,7 @@
   justify-content: center;
   isolation: isolate;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: vk-fab-nudge 10s ease-in-out infinite;
 }
 .vika-fab:hover { transform: translateY(-2px) scale(1.04); }
 .vika-fab:active { transform: translateY(0) scale(0.98); }
@@ -755,9 +760,37 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
   50%      { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
 }
+@keyframes vk-fab-nudge {
+  0%, 92%, 100% { transform: translateY(0) rotate(0deg); }
+  93% { transform: translateY(-1px) rotate(-3deg); }
+  94% { transform: translateY(0) rotate(3deg); }
+  95% { transform: translateY(-1px) rotate(-2deg); }
+  96% { transform: translateY(0) rotate(2deg); }
+}
 
 @media (prefers-reduced-motion: reduce) {
+  .vika-fab,
   .vika-fab-halo,
   .vika-fab-ring,
   .vika-fab-pulse-dot { animation: none; }
+}
+
+@media (max-width: 768px) {
+  .vika-fab-wrapper {
+    right: 6px;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+  }
+
+  .vika-fab-panel {
+    right: 66px;
+    width: min(330px, calc(100vw - 86px));
+    max-height: calc(100vh - 20px);
+  }
+
+  .vika-fab-panel .vika-chat-container {
+    height: min(460px, calc(100vh - 84px));
+    max-height: calc(100vh - 84px);
+  }
 }
