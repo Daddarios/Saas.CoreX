@@ -219,6 +219,8 @@ export function AuthProvider({ children }) {
           setUser(null);
           localStorage.removeItem('accessToken');
           localStorage.removeItem('user');
+          try { localStorage.removeItem('vika.chat.messages'); } catch { /* ignore */ }
+          window.dispatchEvent(new CustomEvent('vika:clearChat'));
           console.log('[useAuth] Session cleared');
         }
       } finally {

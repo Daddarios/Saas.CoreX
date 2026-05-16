@@ -240,6 +240,10 @@ axiosClient.interceptors.response.use(
       localStorage.removeItem('user');
       localStorage.removeItem('mandantId');
       localStorage.removeItem('accessToken');
+      try { localStorage.removeItem('vika.chat.messages'); } catch { /* ignore */ }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('vika:clearChat'));
+      }
 
       // Login sayfasına yönlendir (ama zaten oradaysak yönlendirme!)
       if (typeof window !== 'undefined') {

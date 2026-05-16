@@ -21,23 +21,23 @@
 
 [data-theme='dark'] {
   --app-text: #f8f9fa;
-  --app-bg-gradient: #0f111a;
-  --shell-bg: #0f111a;
-  --surface: #151925;
-  --surface-2: #1b2130;
-  --border-soft: #2a3245;
+  --app-bg-gradient: #121212;
+  --shell-bg: #121212;
+  --surface: #1a1a1a;
+  --surface-2: #242424;
+  --border-soft: #343434;
   --link-text: #f8f9fa;
-  --link-hover-bg: rgba(95, 158, 160, 0.18);
-  --link-hover-text: #7fc4c6;
-  --overlay-bg: rgba(15, 17, 26, 0.84);
-  --header-bg: rgba(15, 17, 26, 0.88);
+  --link-hover-bg: rgba(255, 255, 255, 0.08);
+  --link-hover-text: #e7e7e7;
+  --overlay-bg: rgba(10, 10, 10, 0.84);
+  --header-bg: rgba(16, 16, 16, 0.88);
   --shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.35);
-  --theme-btn-bg: rgba(21, 25, 37, 0.8);
+  --theme-btn-bg: rgba(30, 30, 30, 0.85);
   --theme-btn-text: #f8f9fa;
-  --theme-btn-border: rgba(95, 158, 160, 0.3);
-  --vista-cadet: #7fc4c6;
-  --vista-cadet-soft: rgba(95, 158, 160, 0.14);
-  --vista-cadet-mid: rgba(95, 158, 160, 0.28);
+  --theme-btn-border: rgba(255, 255, 255, 0.18);
+  --vista-cadet: #b8b8b8;
+  --vista-cadet-soft: rgba(255, 255, 255, 0.08);
+  --vista-cadet-mid: rgba(255, 255, 255, 0.16);
 }
 
 /* ── Vista Background ───────────────────────────────────────── */
@@ -53,11 +53,11 @@
 
 [data-theme='dark'] .app-shell {
   background:
-    radial-gradient(ellipse at 0% 0%, rgba(95, 158, 160, 0.18) 0px, transparent 55%),
-    radial-gradient(ellipse at 100% 0%, rgba(13, 110, 253, 0.1) 0px, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(95, 158, 160, 0.1) 0px, transparent 50%),
-    radial-gradient(ellipse at 0% 100%, rgba(13, 110, 253, 0.07) 0px, transparent 50%),
-    linear-gradient(160deg, #080e1a 0%, #0f111a 50%, #0a1020 100%);
+    radial-gradient(ellipse at 0% 0%, rgba(255, 255, 255, 0.06) 0px, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, rgba(255, 255, 255, 0.03) 0px, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(255, 255, 255, 0.025) 0px, transparent 50%),
+    radial-gradient(ellipse at 0% 100%, rgba(255, 255, 255, 0.02) 0px, transparent 50%),
+    linear-gradient(160deg, #0c0c0c 0%, #141414 50%, #101010 100%);
   background-attachment: fixed;
 }
 
@@ -195,11 +195,11 @@ body {
 }
 
 [data-theme='dark'] .app-sidebar {
-  background: linear-gradient(180deg, rgba(16, 20, 32, 0.88) 0%, rgba(11, 15, 26, 0.84) 100%);
+  background: linear-gradient(180deg, rgba(24, 24, 24, 0.9) 0%, rgba(17, 17, 17, 0.86) 100%);
   backdrop-filter: blur(20px) saturate(130%);
   -webkit-backdrop-filter: blur(20px) saturate(130%);
-  border-right: 1px solid rgba(148, 163, 184, 0.16) !important;
-  box-shadow: inset -1px 0 0 rgba(148, 163, 184, 0.08), 10px 0 26px rgba(0, 0, 0, 0.34);
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04), 10px 0 26px rgba(0, 0, 0, 0.42);
 }
 
 .app-sidebar-brand,
@@ -420,8 +420,8 @@ body {
 }
 
 [data-theme='dark'] .app-sidebar-footer {
-  border-color: rgba(148, 163, 184, 0.22) !important;
-  background: rgba(30, 41, 59, 0.44);
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(40, 40, 40, 0.5);
 }
 
 .app-shell-main {
@@ -504,7 +504,7 @@ body {
 }
 
 [data-theme='dark'] .app-mobile-sidebar {
-  background-color: rgba(15, 17, 26, 0.65);
+  background-color: rgba(17, 17, 17, 0.78);
 }
 
 .header-action-btn {
@@ -1719,9 +1719,9 @@ body {
 }
 
 [data-theme='dark'] .global-chat-notice {
-  background: rgba(12, 23, 37, 0.92);
-  border-color: rgba(14, 165, 233, 0.48);
-  color: #7dd3fc;
+  background: rgba(24, 24, 24, 0.94);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f1f1f1;
 }
 
 [data-theme='dark'] .global-chat-notice-avatar-fallback {

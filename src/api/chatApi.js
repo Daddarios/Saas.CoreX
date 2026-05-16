@@ -8,4 +8,13 @@ export const chatApi = {
 
   getOrCreateDirektChat: (zielBenutzerId) =>
     axiosClient.post(`/chat/direktchat/${zielBenutzerId}`),
+
+  updateNachricht: (nachrichtId, inhalt) =>
+    axiosClient.put(`/chat/nachricht/${nachrichtId}`, { inhalt }),
+
+  deleteNachricht: (nachrichtId) =>
+    axiosClient.delete(`/chat/nachricht/${nachrichtId}`),
+
+  addReaktion: (nachrichtId, emoji) =>
+    axiosClient.post(`/chat/nachricht/${nachrichtId}/reaktion`, { emoji }),
 };

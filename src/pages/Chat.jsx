@@ -74,6 +74,11 @@ const getOtherTeilnehmer = (room, currentUserId) => {
   if (!Array.isArray(room?.teilnehmer)) return [];
   return room.teilnehmer.filter((p) => p?.id !== currentUserId);
 };
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '😮'];
+const isEndpointUnsupported = (err) => {
+  const status = err?.response?.status;
+  return status === 404 || status === 405 || status === 501;
+};
 
 export default function Chat() {
   const { t } = useLanguage();
@@ -85,6 +90,10 @@ export default function Chat() {
   const [activeRaum, setActiveRaum] = useState(null);
   const [nachrichten, setNachrichten] = useState([]);
   const [newMsg, setNewMsg] = useState('');
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [reactionPickerForId, setReactionPickerForId] = useState(null);
+  const [actionMenuForId, setActionMenuForId] = useState(null);
   const [raumIdForFile, setRaumIdForFile] = useState(null);
   
   const [loadingRooms, setLoadingRooms] = useState(true);
@@ -337,6 +346,93 @@ export default function Chat() {
       setSendError('');
     } catch (err) {
       setSendError(err.response?.data?.message || t('chat.fileUploadError', 'File upload failed'));
+    }
+  };
+
+  const startEditMessage = (msg) => {
+    if (!msg?.id || msg?.istDatei) return;
+    setActionMenuForId(null);
+    setEditingMessageId(msg.id);
+    setEditText(msg.inhalt || '');
+  };
+
+  const cancelEditMessage = () => {
+    setEditingMessageId(null);
+    setEditText('');
+  };
+
+  const saveEditMessage = async (msg) => {
+    const trimmed = editText.trim();
+    if (!msg?.id || !trimmed) return;
+    try {
+      await chatApi.updateNachricht(msg.id, trimmed);
+      setNachrichten((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, inhalt: trimmed, bearbeitet: true } : m))
+      );
+      cancelEditMessage();
+      setSendError('');
+    } catch (err) {
+      if (isEndpointUnsupported(err)) {
+        setNachrichten((prev) =>
+          prev.map((m) => (m.id === msg.id ? { ...m, inhalt: trimmed, bearbeitet: true } : m))
+        );
+        cancelEditMessage();
+        setSendError(t('chat.editLocalOnly', 'Edit endpoint not available on server. Applied locally.'));
+        return;
+      }
+      setSendError(err.response?.data?.message || t('chat.editError', 'Message update failed'));
+    }
+  };
+
+  const deleteMessage = async (msg) => {
+    if (!msg?.id) return;
+    try {
+      await chatApi.deleteNachricht(msg.id);
+      setNachrichten((prev) => prev.filter((m) => m.id !== msg.id));
+      setSendError('');
+    } catch (err) {
+      if (isEndpointUnsupported(err)) {
+        setNachrichten((prev) => prev.filter((m) => m.id !== msg.id));
+        setSendError(t('chat.deleteLocalOnly', 'Delete endpoint not available on server. Removed locally.'));
+        return;
+      }
+      setSendError(err.response?.data?.message || t('chat.deleteError', 'Message delete failed'));
+    }
+  };
+
+  const addReaction = async (msg, emoji) => {
+    if (!msg?.id || !emoji) return;
+    const applyReactionLocal = () => {
+      setNachrichten((prev) =>
+        prev.map((m) => {
+          if (m.id !== msg.id) return m;
+          const reactions = Array.isArray(m.reaksiyonlar) ? [...m.reaksiyonlar] : [];
+          const idx = reactions.findIndex((r) => r.emoji === emoji);
+          if (idx >= 0) {
+            reactions[idx] = { ...reactions[idx], adet: (reactions[idx].adet || 0) + 1 };
+          } else {
+            reactions.push({ emoji, adet: 1 });
+          }
+          return { ...m, reaksiyonlar: reactions };
+        })
+      );
+    };
+    applyReactionLocal();
+    try {
+      await chatApi.addReaktion(msg.id, emoji);
+      setReactionPickerForId(null);
+      setActionMenuForId(null);
+      setSendError('');
+    } catch (err) {
+      if (isEndpointUnsupported(err)) {
+        setReactionPickerForId(null);
+        setActionMenuForId(null);
+        setSendError(t('chat.reactionLocalOnly', 'Reaction endpoint not available on server. Applied locally.'));
+        return;
+      }
+      setReactionPickerForId(null);
+      setActionMenuForId(null);
+      setSendError(err.response?.data?.message || t('chat.reactionError', 'Reaction saved locally.'));
     }
   };
 
@@ -612,6 +708,8 @@ export default function Chat() {
                     const senderName =
                       fullName(n.absender) || n.absenderName || t('chat.user');
                     const bild = isOwn ? user?.bild : n.absender?.bild;
+                    const isEditing = editingMessageId === n.id;
+                    const reactions = Array.isArray(n.reaksiyonlar) ? n.reaksiyonlar : [];
                     return (
                       <div key={n.id ?? i} className={`chat-msg-row ${isOwn ? 'own' : ''}`}>
                         {!isOwn && (
@@ -631,7 +729,24 @@ export default function Chat() {
                           <span className="chat-bubble-author">
                             {isOwn ? (fullName(user) || user?.email || t('chat.user')) : senderName}
                           </span>
-                          {n.istDatei ? (
+                          {isEditing ? (
+                            <div className="chat-edit-wrap">
+                              <input
+                                className="chat-edit-input"
+                                value={editText}
+                                onChange={(e) => setEditText(e.target.value)}
+                                maxLength={4000}
+                              />
+                              <div className="chat-edit-actions">
+                                <button type="button" className="chat-msg-action-btn" onClick={() => saveEditMessage(n)}>
+                                  <i className="bi bi-check2" />
+                                </button>
+                                <button type="button" className="chat-msg-action-btn" onClick={cancelEditMessage}>
+                                  <i className="bi bi-x-lg" />
+                                </button>
+                              </div>
+                            </div>
+                          ) : n.istDatei ? (
                             <div className="chat-file-msg">
                               {isImageFile(n) ? (
                                 <>
@@ -671,6 +786,82 @@ export default function Chat() {
                             </div>
                           ) : (
                             <div>{n.inhalt}</div>
+                          )}
+                          {!n.istDatei && reactions.length > 0 && (
+                            <div className="chat-reactions-row">
+                              {reactions.map((r, idx) => (
+                                <span key={`${r.emoji}-${idx}`} className="chat-reaction-pill">
+                                  {r.emoji} {r.adet || r.count || 1}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <div className="chat-msg-actions">
+                            <button
+                              type="button"
+                              className="chat-msg-action-btn"
+                              title={t('common.actions', 'Actions')}
+                              onClick={() => {
+                                setActionMenuForId((prev) => (prev === n.id ? null : n.id));
+                                setReactionPickerForId(null);
+                              }}
+                            >
+                              <i className="bi bi-three-dots" />
+                            </button>
+                          </div>
+                          {actionMenuForId === n.id && (
+                            <div className="chat-msg-actions-menu">
+                              {isOwn && !n.istDatei && !isEditing && (
+                                <button
+                                  type="button"
+                                  className="chat-msg-action-item"
+                                  onClick={() => startEditMessage(n)}
+                                >
+                                  <i className="bi bi-pencil-square" />
+                                  {t('common.edit', 'Edit')}
+                                </button>
+                              )}
+                              {isOwn && (
+                                <button
+                                  type="button"
+                                  className="chat-msg-action-item danger"
+                                  onClick={() => deleteMessage(n)}
+                                >
+                                  <i className="bi bi-trash3" />
+                                  {t('common.delete', 'Delete')}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="chat-msg-action-item"
+                                onClick={() => addReaction(n, '👍')}
+                              >
+                                <i className="bi bi-hand-thumbs-up" />
+                                {t('chat.like', 'Like')}
+                              </button>
+                              <button
+                                type="button"
+                                className="chat-msg-action-item"
+                                onClick={() => setReactionPickerForId((prev) => (prev === n.id ? null : n.id))}
+                              >
+                                <i className="bi bi-emoji-smile" />
+                                {t('chat.reaction', 'Reaction')}
+                              </button>
+                              {reactionPickerForId === n.id && (
+                                <div className="chat-emoji-picker">
+                                  {QUICK_REACTIONS.map((emoji) => (
+                                    <button
+                                      key={emoji}
+                                      type="button"
+                                      className="chat-emoji-btn"
+                                      onClick={() => addReaction(n, emoji)}
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           )}
                           <span className="chat-bubble-time">{formatDateTime(n.geschicktAm)}</span>
                         </div>
