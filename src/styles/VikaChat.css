@@ -37,7 +37,7 @@
 
   display: flex;
   flex-direction: column;
-  height: min(500px, calc(100vh - 96px));
+  height: min(460px, calc(100vh - 96px));
   max-height: calc(100vh - 96px);
   background: var(--vk-bg);
   border: 1px solid var(--vk-border);
@@ -57,8 +57,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 10px 12px;
   background: var(--vk-bg);
   border-bottom: 1px solid var(--vk-border-soft);
 }
@@ -75,7 +75,7 @@
 .vika-header-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -83,9 +83,9 @@
 .vika-avatar-container {
   position: relative;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   background: var(--vk-accent-grad);
   display: flex;
   align-items: center;
@@ -96,7 +96,7 @@
 }
 
 .vika-avatar-icon {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   color: #ffffff;
   line-height: 1;
 }
@@ -137,7 +137,7 @@
 
 .vika-title {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.96rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--vk-text);
@@ -146,7 +146,7 @@
 
 .vika-subtitle {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: var(--vk-text-muted);
   display: flex;
@@ -219,18 +219,17 @@
 .vika-chat-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 16px;
+  padding: 14px 12px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   background: var(--vk-bg-soft);
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none; /* Firefox */
 }
-.vika-chat-body::-webkit-scrollbar          { width: 6px; }
-.vika-chat-body::-webkit-scrollbar-track    { background: transparent; }
-.vika-chat-body::-webkit-scrollbar-thumb    { background: rgba(148, 163, 184, 0.35); border-radius: 3px; }
-.vika-chat-body::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.6); }
+.vika-chat-body::-webkit-scrollbar { display: none; }
 
 /* Empty state */
 .vika-empty-state {
@@ -280,15 +279,15 @@
    ============================================================ */
 .vika-message {
   max-width: 85%;
-  font-size: 0.875rem;
-  line-height: 1.6;
+  font-size: 0.8rem;
+  line-height: 1.45;
   word-wrap: break-word;
   animation: vk-message-in 0.25s ease-out;
 }
 
 .vika-message.user {
   align-self: flex-end;
-  padding: 10px 14px;
+  padding: 8px 11px;
   border-radius: 14px 14px 4px 14px;
   background: var(--vk-accent-grad);
   color: #ffffff;
@@ -297,9 +296,9 @@
 
 .vika-message.bot {
   align-self: flex-start;
-  padding: 10px 14px;
+  padding: 8px 11px;
   border-radius: 14px 14px 14px 4px;
-  background: var(--vk-bg-elevated);
+  background: var(--vk-bg-elevated, #ffffff);
   color: var(--vk-text);
   border: 1px solid var(--vk-border-soft);
   box-shadow: var(--vk-shadow-sm);
@@ -417,7 +416,7 @@
    INPUT AREA
    ============================================================ */
 .vika-chat-input-area {
-  padding: 12px 14px 14px;
+  padding: 9px 10px 10px;
   background: var(--vk-bg);
   border-top: 1px solid var(--vk-border-soft);
 }
@@ -425,8 +424,8 @@
 .vika-input-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 6px 6px 14px;
+  gap: 6px;
+  padding: 4px 4px 4px 10px;
   background: var(--vk-surface);
   border: 1px solid var(--vk-border);
   border-radius: var(--vk-radius-md);
@@ -444,9 +443,9 @@
   outline: none;
   background: transparent;
   font-family: var(--vk-font);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--vk-text);
-  padding: 8px 0;
+  padding: 6px 0;
   min-width: 0;
 }
 .vika-chat-input::placeholder { color: var(--vk-text-faint); }
@@ -454,8 +453,8 @@
 
 .vika-chat-btn {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: none;
   border-radius: var(--vk-radius-sm);
   background: var(--vk-border);
@@ -464,7 +463,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .vika-chat-btn.active {
@@ -614,32 +613,41 @@
    ============================================================ */
 .vika-fab-wrapper {
   position: fixed;
-  top: 50%;
-  bottom: auto;
-  right: 8px;
-  transform: translateY(-50%);
+  top: auto;
+  bottom: 20px;
+  right: 0;
+  left: auto;
+  transform: translateX(38px);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   z-index: 9999;
+}
+
+.vika-fab-wrapper:hover,
+.vika-fab-wrapper:focus-within,
+.vika-fab-wrapper.is-open {
+  transform: translateX(0);
 }
 
 .vika-fab-panel {
   position: absolute;
-  top: 50%;
-  bottom: auto;
+  top: auto;
+  bottom: 0;
   right: 72px;
-  width: 350px;
+  left: auto;
+  width: 290px;
   max-width: calc(100vw - 32px);
   border-radius: 16px;
   max-height: calc(100vh - 24px);
-  transform-origin: center right;
+  transform-origin: bottom right;
   opacity: 0;
-  transform: translateY(-50%) translateX(10px) scale(0.96);
+  transform: translateX(10px) scale(0.96);
   pointer-events: none;
   visibility: hidden;
   transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.22s;
 }
 .vika-fab-panel.is-open {
   opacity: 1;
-  transform: translateY(-50%) translateX(0) scale(1);
+  transform: translateX(0) scale(1);
   pointer-events: auto;
   visibility: visible;
   transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0s;
@@ -647,8 +655,8 @@
 
 .vika-fab {
   position: relative;
-  width: 60px;
-  height: 60px;
+  width: 54px;
+  height: 54px;
   padding: 0;
   border: none;
   background: transparent;
@@ -662,6 +670,49 @@
 }
 .vika-fab:hover { transform: translateY(-2px) scale(1.04); }
 .vika-fab:active { transform: translateY(0) scale(0.98); }
+
+/* Hidden edge state: right-side rectangular jelly tab */
+.vika-fab-wrapper:not(.is-open) .vika-fab {
+  width: 28px;
+  height: 58px;
+  border-radius: 14px 0 0 14px;
+  transform: none;
+  animation: vk-fab-jelly 3.2s ease-in-out infinite;
+}
+
+.vika-fab-wrapper:not(.is-open) .vika-fab-halo,
+.vika-fab-wrapper:not(.is-open) .vika-fab-ring {
+  border-radius: 14px 0 0 14px;
+}
+
+.vika-fab-wrapper:not(.is-open) .vika-fab-halo {
+  inset: -4px -1px -4px -6px;
+  filter: blur(10px);
+  opacity: 0.42;
+}
+
+.vika-fab-wrapper:not(.is-open) .vika-fab-ring {
+  inset: 0;
+  opacity: 0.82;
+}
+
+.vika-fab-wrapper:not(.is-open) .vika-fab-core {
+  width: calc(100% - 3px);
+  height: calc(100% - 3px);
+  border-radius: 12px 0 0 12px;
+  font-size: 14px;
+}
+
+.vika-fab-wrapper:not(.is-open) .vika-fab-core i {
+  font-size: 13px;
+}
+
+.vika-fab-wrapper:not(.is-open) .vika-fab-pulse-dot {
+  top: 2px;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+}
 
 /* Outer animated halo (soft glow) */
 .vika-fab-halo {
@@ -704,7 +755,7 @@
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  font-size: 22px;
+  font-size: 20px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
     inset 0 -8px 16px rgba(0, 0, 0, 0.25),
@@ -731,10 +782,10 @@
 /* Status pulse dot — signals active AI */
 .vika-fab-pulse-dot {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 10px;
-  height: 10px;
+  top: 3px;
+  right: 3px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #10b981;
   border: 2px solid #0b1226;
@@ -750,7 +801,7 @@
   background: #ffffff;
   -webkit-text-fill-color: #ffffff;
   filter: none;
-  font-size: 18px;
+  font-size: 11px;
 }
 
 @keyframes vk-fab-spin {
@@ -768,6 +819,24 @@
   96% { transform: translateY(0) rotate(2deg); }
 }
 
+@keyframes vk-fab-jelly {
+  0%, 100% {
+    transform: scaleX(1) scaleY(1);
+  }
+  20% {
+    transform: scaleX(1.06) scaleY(0.96);
+  }
+  40% {
+    transform: scaleX(0.97) scaleY(1.04);
+  }
+  60% {
+    transform: scaleX(1.03) scaleY(0.98);
+  }
+  80% {
+    transform: scaleX(0.99) scaleY(1.02);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vika-fab,
   .vika-fab-halo,
@@ -777,20 +846,22 @@
 
 @media (max-width: 768px) {
   .vika-fab-wrapper {
-    right: 6px;
-    top: 50%;
-    bottom: auto;
-    transform: translateY(-50%);
+    right: 0;
+    left: auto;
+    top: auto;
+    bottom: 14px;
+    transform: translateX(36px);
   }
 
   .vika-fab-panel {
     right: 66px;
-    width: min(330px, calc(100vw - 86px));
+    left: auto;
+    width: min(280px, calc(100vw - 82px));
     max-height: calc(100vh - 20px);
   }
 
   .vika-fab-panel .vika-chat-container {
-    height: min(460px, calc(100vh - 84px));
+    height: min(420px, calc(100vh - 84px));
     max-height: calc(100vh - 84px);
   }
 }

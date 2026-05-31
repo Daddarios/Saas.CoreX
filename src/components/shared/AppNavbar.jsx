@@ -33,6 +33,7 @@ export default function AppNavbar() {
             <Nav.Link as={Link} to="/projekte">Projekte</Nav.Link>
             <Nav.Link as={Link} to="/tickets">Tickets</Nav.Link>
             <Nav.Link as={Link} to="/chat">Chat</Nav.Link>
+            
           </Nav>
           <Nav>
             <NavDropdown title={user?.vorname || 'Benutzer'} align="end">

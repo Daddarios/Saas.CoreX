@@ -38,6 +38,7 @@ const navGroups = [
     items: [
       { to: '/abonnement', labelKey: 'sidebar.abonnement', icon: 'bi-credit-card', allowedRoles: ['SuperAdmin', 'Admin'] },
       { to: '/zahlung',    labelKey: 'sidebar.zahlung',    icon: 'bi-wallet2', allowedRoles: ['SuperAdmin', 'Admin'] },
+      
     ],
   },
 ];

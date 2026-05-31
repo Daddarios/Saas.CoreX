@@ -244,7 +244,7 @@ export default function MainLayout() {
         </main>
 
         {/* VIKA AI Assistant Floating Widget */}
-        <div className="vika-fab-wrapper">
+        <div className={`vika-fab-wrapper ${isVikaOpen ? 'is-open' : ''}`}>
           {/* Panel her zaman mount — kapatma sadece gizler, sohbet ve baglanti korunur */}
           <div className={`vika-fab-panel ${isVikaOpen ? 'is-open' : ''}`} aria-hidden={!isVikaOpen}>
             <VikaChat />

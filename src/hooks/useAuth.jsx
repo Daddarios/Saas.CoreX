@@ -3,6 +3,29 @@ import { authApi } from '../api/authApi';
 import { benutzerApi } from '../api/benutzerApi';
 import { setAccessToken } from '../api/axiosClient';
 
+const IS_DEV = import.meta.env.DEV;
+
+function maskEmail(email) {
+  if (!email || typeof email !== 'string') return '';
+  const [local = '', domain = ''] = email.split('@');
+  if (!domain) return `${local.slice(0, 2)}***`;
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
+function maskId(value) {
+  if (!value) return '';
+  const text = String(value);
+  if (text.length <= 8) return '***';
+  return `${text.slice(0, 4)}****${text.slice(-4)}`;
+}
+
+function maskPhone(value) {
+  if (!value) return '';
+  const text = String(value);
+  if (text.length <= 4) return '***';
+  return `${text.slice(0, 2)}***${text.slice(-2)}`;
+}
+
 // Backend farklı isimlendirmeler kullanabilir (mandantId / MandantId / mandant_id / tenantId).
 // Hangisi varsa onu döndür ve localStorage'a yaz.
 function pickMandantId(obj) {
@@ -30,31 +53,50 @@ function persistMandantId(obj) {
   return null;
 }
 
+function sanitizeProfileForLog(profile) {
+  if (!profile || typeof profile !== 'object') return profile;
+  return {
+    id: maskId(profile.id),
+    email: maskEmail(profile.email),
+    vorname: profile.vorname ? `${String(profile.vorname).slice(0, 1)}***` : '',
+    nachname: profile.nachname ? `${String(profile.nachname).slice(0, 1)}***` : '',
+    rufNummer: maskPhone(profile.rufNummer),
+    rolle: profile.rolle || '',
+    rollen: Array.isArray(profile.rollen) ? profile.rollen.length : 0,
+    mandantId: maskId(pickMandantId(profile)),
+    hasBild: !!profile.bild,
+  };
+}
+
+function debugAuth(...args) {
+  if (IS_DEV) console.log(...args);
+}
+
 // /auth/me bazı backend'lerde bild gibi alanları döndürmez;
 // eksikse /benutzer/{id} endpoint'inden tam profili çekip birleştiririz.
 async function enrichProfile(profile) {
-  console.log('[enrichProfile] Starting with profile:', profile?.email, 'has bild:', !!profile?.bild);
+  debugAuth('[enrichProfile] Starting with profile:', sanitizeProfileForLog(profile));
   if (profile && typeof profile === 'object') {
-    console.log('[enrichProfile] Profile keys:', Object.keys(profile));
-    console.log('[enrichProfile] mandant candidate:', pickMandantId(profile));
+    debugAuth('[enrichProfile] Profile keys:', Object.keys(profile));
+    debugAuth('[enrichProfile] mandant candidate:', maskId(pickMandantId(profile)));
   }
   
   // Eğer zaten temel alanlar VE bild varsa, enrichment yapma (gereksiz API çağrısı)
   if (profile?.vorname && profile?.nachname && profile?.bild) {
-    console.log('[enrichProfile] Profile already complete, skipping API call');
+    debugAuth('[enrichProfile] Profile already complete, skipping API call');
     return profile;
   }
   
   // Temel alanlar veya bild eksikse ve id varsa, tam profili çek
   if (profile?.id) {
-    console.log('[enrichProfile] Fetching full profile for user ID:', profile.id);
+    debugAuth('[enrichProfile] Fetching full profile for user ID:', maskId(profile.id));
     try {
       const res = await benutzerApi.getById(profile.id);
       const enriched = { ...profile, ...res.data };
-      console.log('[enrichProfile] Profile enriched successfully, has bild:', !!enriched.bild);
-      console.log('[enrichProfile] Enriched keys:', Object.keys(enriched).join(', '));
-      console.log('[enrichProfile] FULL ENRICHED OBJECT:', JSON.stringify(enriched, null, 2));
-      console.log('[enrichProfile] Enriched mandant candidate:', pickMandantId(enriched));
+      debugAuth('[enrichProfile] Profile enriched successfully, has bild:', !!enriched.bild);
+      debugAuth('[enrichProfile] Enriched keys:', Object.keys(enriched).join(', '));
+      debugAuth('[enrichProfile] MASKED ENRICHED OBJECT:', sanitizeProfileForLog(enriched));
+      debugAuth('[enrichProfile] Enriched mandant candidate:', maskId(pickMandantId(enriched)));
       return enriched;
     } catch (err) {
       console.error('[enrichProfile] Failed to fetch full profile:', err);
@@ -62,7 +104,7 @@ async function enrichProfile(profile) {
     }
   }
   
-  console.log('[enrichProfile] No ID available, returning original profile');
+  debugAuth('[enrichProfile] No ID available, returning original profile');
   return profile;
 }
 
@@ -75,24 +117,24 @@ export function AuthProvider({ children }) {
   // Token + user'ı birlikte set eden yardımcı
   const login = useCallback(async (userData) => {
     if (!userData) {
-      console.log('[useAuth] Login called with no userData');
+      debugAuth('[useAuth] Login called with no userData');
       return;
     }
     
-    console.log('[useAuth] Login called with userData:', userData);
+    debugAuth('[useAuth] Login called with userData:', sanitizeProfileForLog(userData));
     
     // Token varsa kaydet (opsiyonel - backend cookie-based de olabilir)
     const token = userData.accessToken ?? userData.token ?? null;
     if (token) {
       setAccessToken(token);
-      console.log('[useAuth] Token saved to localStorage');
+      debugAuth('[useAuth] Token saved to localStorage');
     } else {
-      console.log('[useAuth] No token in response - using cookie-based auth');
+      debugAuth('[useAuth] No token in response - using cookie-based auth');
     }
 
     // Eğer userData'da email var ama ID yoksa, /auth/me'den tam profili al
     if ((userData.email || userData.vorname) && !userData.id) {
-      console.log('[useAuth] Email exists but no ID, fetching from /auth/me...');
+      debugAuth('[useAuth] Email exists but no ID, fetching from /auth/me...');
       try {
         const res = await authApi.me();
         const profile = await enrichProfile(res.data);
@@ -102,7 +144,7 @@ export function AuthProvider({ children }) {
         if (!mandantId) {
           console.warn('[useAuth] Warning: mandantId is missing after login. Check backend response.');
         }
-        console.log('[useAuth] ✅ User profile fetched from /auth/me:', profile.email, 'has avatar:', !!profile.bild, 'mandantId:', pickMandantId(profile));
+        debugAuth('[useAuth] User profile fetched from /auth/me:', sanitizeProfileForLog(profile));
         return profile;
       } catch (err) {
         console.error('[useAuth] Failed to fetch from /auth/me:', err);
@@ -114,7 +156,7 @@ export function AuthProvider({ children }) {
         if (!mandantId) {
           console.warn('[useAuth] Warning: mandantId is missing after login. Check backend response.');
         }
-        console.log('[useAuth] Using fallback user data');
+        debugAuth('[useAuth] Using fallback user data');
         return userInfo;
       }
     }
@@ -122,7 +164,7 @@ export function AuthProvider({ children }) {
     // Eğer userData'da profil bilgisi VE ID varsa direkt kullan
     if ((userData.email || userData.vorname) && userData.id) {
       const { accessToken: _a, token: _t, ...rawInfo } = userData;
-      console.log('[useAuth] Enriching profile with user data (has ID)...');
+      debugAuth('[useAuth] Enriching profile with user data (has ID)...');
       const userInfo = await enrichProfile(rawInfo);
       setUser(userInfo);
       localStorage.setItem('user', JSON.stringify(userInfo));
@@ -130,14 +172,14 @@ export function AuthProvider({ children }) {
       if (!mandantId) {
         console.warn('[useAuth] Warning: mandantId is missing after login. Check backend response.');
       }
-      console.log('[useAuth] ✅ User profile saved successfully:', userInfo.email, 'has avatar:', !!userInfo.bild, 'mandantId:', pickMandantId(userInfo) || pickMandantId(userData));
+      debugAuth('[useAuth] User profile saved successfully:', sanitizeProfileForLog(userInfo));
       return userInfo;
     }
 
     // Eğer userData'da sadece token/mesaj varsa, profili me endpoint'inden al
     persistMandantId(userData);
     try {
-      console.log('[useAuth] No profile data, fetching from /auth/me...');
+      debugAuth('[useAuth] No profile data, fetching from /auth/me...');
       const res = await authApi.me();
       const profile = await enrichProfile(res.data);
       setUser(profile);
@@ -146,14 +188,14 @@ export function AuthProvider({ children }) {
       if (!mandantId) {
         console.warn('[useAuth] Warning: mandantId is missing after login. Check backend response.');
       }
-      console.log('[useAuth] ✅ User profile fetched and saved:', profile.email, 'has avatar:', !!profile.bild);
+      debugAuth('[useAuth] User profile fetched and saved:', sanitizeProfileForLog(profile));
       return profile;
     } catch (err) {
       console.error('[useAuth] Failed to fetch profile from /auth/me:', err);
       const { accessToken: _a, token: _t, ...userInfo } = userData;
       setUser(userInfo);
       localStorage.setItem('user', JSON.stringify(userInfo));
-      console.log('[useAuth] Using fallback user data');
+      debugAuth('[useAuth] Using fallback user data');
       return userInfo;
     }
   }, []);
@@ -177,26 +219,26 @@ export function AuthProvider({ children }) {
     let cancelled = false;
 
     (async () => {
-      console.log('[useAuth] App initialization started');
+      debugAuth('[useAuth] App initialization started');
       
       // 🔥 FIX: Login veya verify sayfasındaysak session kontrolü yapma!
       const currentPath = window.location.pathname;
       if (currentPath === '/login' || currentPath === '/verify') {
-        console.log('[useAuth] On auth page, skipping session check');
+        debugAuth('[useAuth] On auth page, skipping session check');
         if (!cancelled) setIsLoading(false);
         return;
       }
       
       const storedToken = localStorage.getItem('accessToken');
       const storedUser = localStorage.getItem('user');
-      console.log('[useAuth] Stored token:', storedToken ? 'EXISTS' : 'NULL');
-      console.log('[useAuth] Stored user:', storedUser ? 'EXISTS' : 'NULL');
+      debugAuth('[useAuth] Stored token:', storedToken ? 'EXISTS' : 'NULL');
+      debugAuth('[useAuth] Stored user:', storedUser ? 'EXISTS' : 'NULL');
       
       // Eğer localStorage'da user varsa, önce onu yükle (instant UI)
       if (storedUser) {
         try {
           const userData = JSON.parse(storedUser);
-          console.log('[useAuth] Restored user from localStorage:', userData.email);
+          debugAuth('[useAuth] Restored user from localStorage:', sanitizeProfileForLog(userData));
           if (!cancelled) setUser(userData);
         } catch (e) {
           console.error('[useAuth] Failed to parse stored user:', e);
@@ -206,7 +248,7 @@ export function AuthProvider({ children }) {
       try {
         // Backend'den güncel profili al (cookie-based auth)
         const res = await authApi.me();
-        console.log('[useAuth] /auth/me successful:', res.data.email);
+        debugAuth('[useAuth] /auth/me successful:', sanitizeProfileForLog(res.data));
         if (!cancelled) {
           await login(res.data);
         }
@@ -221,12 +263,12 @@ export function AuthProvider({ children }) {
           localStorage.removeItem('user');
           try { localStorage.removeItem('vika.chat.messages'); } catch { /* ignore */ }
           window.dispatchEvent(new CustomEvent('vika:clearChat'));
-          console.log('[useAuth] Session cleared');
+          debugAuth('[useAuth] Session cleared');
         }
       } finally {
         if (!cancelled) {
           setIsLoading(false);
-          console.log('[useAuth] Initialization complete');
+          debugAuth('[useAuth] Initialization complete');
         }
       }
     })();
