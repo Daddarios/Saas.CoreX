@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Alert,
   Button,
@@ -44,10 +44,19 @@ export default function Tickets() {
 
   const showToast = (text) => setToast({ show: true, text });
 
+  // SignalR mesajları üst üste gelirse load()'u debounce et (500ms)
+  const reloadTimerRef = useRef(null);
+  const debouncedLoad = useCallback(() => {
+    if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+    reloadTimerRef.current = setTimeout(() => load(), 500);
+  }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => () => clearTimeout(reloadTimerRef.current), []);
+
   useSignalR('/hubs/benachrichtigung', {
     onReceive: {
       TicketUpdated: () => {
-        load();
+        debouncedLoad();
         showToast(t('tickets.updated'));
       },
       NewNotification: (msg) => {
@@ -58,13 +67,20 @@ export default function Tickets() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
       const res = await ticketApi.getAll(page, size, search);
       setData(res.data.items || res.data);
       setTotal(res.data.totalCount || 0);
-    } catch { /* ignore */ }
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.getLocalizedMessage(t));
+      } else {
+        setError(t('tickets.loadError', 'Tickets konnten nicht geladen werden'));
+      }
+    }
     setLoading(false);
-  }, [page, search]);
+  }, [page, search, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -107,7 +123,14 @@ export default function Tickets() {
       await ticketApi.delete(deleteId);
       setDeleteId(null);
       load();
-    } catch { /* ignore */ }
+    } catch (err) {
+      setDeleteId(null);
+      if (err instanceof ApiError) {
+        setError(err.getLocalizedMessage(t));
+      } else {
+        setError(t('tickets.deleteError', 'Löschen fehlgeschlagen'));
+      }
+    }
   };
 
   const changeStatus = async (id, status) => {
@@ -158,6 +181,8 @@ export default function Tickets() {
         </Button>}
       </div>
 
+      {error && !showModal && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+
       {loading ? (
         <LoadingSpinner text={t('tickets.loading')} />
       ) : (
@@ -207,25 +232,30 @@ function TicketModal({ show, onHide, onSave, initial, error }) {
   });
 
   // Dropdown listelerini yükle (Modal açıldığında)
+  // cancelled bayrağı: modal kapanıp tekrar açılırsa eski cevaplar state'i ezmesin
   useEffect(() => {
-    if (show) {
-      kundeApi.getAll(1, 200).then((res) => {
-        setKunden(res.data?.items || res.data || []);
-      }).catch(() => {});
-      projektApi.getAll(1, 200).then((res) => {
-        const projects = res.data?.items || res.data || [];
-        setProjekteFull(projects);
-        // İlk yüklemede müşteri seçiliyse filtrele
-        if (initial?.kundeId) {
-          setProjekte(projects.filter(p => p.kundeId === initial.kundeId));
-        } else {
-          setProjekte([]);
-        }
-      }).catch(() => {});
-      benutzerApi.getAll(1, 200).then((res) => {
-        setBenutzer(res.data?.items || res.data || []);
-      }).catch(() => {});
-    }
+    if (!show) return;
+    let cancelled = false;
+
+    kundeApi.getAll(1, 200).then((res) => {
+      if (!cancelled) setKunden(res.data?.items || res.data || []);
+    }).catch(() => {});
+    projektApi.getAll(1, 200).then((res) => {
+      if (cancelled) return;
+      const projects = res.data?.items || res.data || [];
+      setProjekteFull(projects);
+      // İlk yüklemede müşteri seçiliyse filtrele
+      if (initial?.kundeId) {
+        setProjekte(projects.filter(p => p.kundeId === initial.kundeId));
+      } else {
+        setProjekte([]);
+      }
+    }).catch(() => {});
+    benutzerApi.getAll(1, 200).then((res) => {
+      if (!cancelled) setBenutzer(res.data?.items || res.data || []);
+    }).catch(() => {});
+
+    return () => { cancelled = true; };
   }, [show, initial]);
 
   // Müşteri seçildiğinde ilgili projeleri ve ansprechpartner'leri yükle
